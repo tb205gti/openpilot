@@ -664,9 +664,9 @@ def _accel_limit_multiplier(CS, lead):
   if CS.teslaModel in ["SP","SPD"]:
       accel_by_speed = OrderedDict([
         # (speed m/s, decel)
-        (0.,  0.95),  #   0 kmh
-        (10., 0.8),  #  35 kmh
-        (20., 0.6),  #  72 kmh
+        (0.,  1.0),  #   0 kmh
+        (10., 0.65),  #  35 kmh
+        (20., 0.7),  #  72 kmh
         (30., 0.7)]) # 107 kmh
   accel_mult = _interp_map(CS.v_ego, accel_by_speed)
   if _is_present(lead):
