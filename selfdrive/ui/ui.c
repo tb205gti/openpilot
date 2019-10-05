@@ -46,6 +46,7 @@
 #define STATUS_ENGAGED 2
 #define STATUS_WARNING 3
 #define STATUS_ALERT 4
+#define STATUS_MAX 5
 
 #define ALERTSIZE_NONE 0
 #define ALERTSIZE_SMALL 1
@@ -126,6 +127,7 @@ typedef struct UIScene {
   float mpc_y[50];
 
   bool world_objects_visible;
+  mat3 warp_matrix;           // transformed box -> frame.
   mat4 extrinsic_matrix;      // Last row is 0 so we can use mat4.
 
   float v_cruise;
@@ -260,14 +262,11 @@ typedef struct UIState {
   int awake_timeout;
 
   int volume_timeout;
-  int controls_timeout;
   int alert_sound_timeout;
   int speed_lim_off_timeout;
   int is_metric_timeout;
   int longitudinal_control_timeout;
   int limit_set_speed_timeout;
-
-  bool controls_seen;
 
   int status;
   bool is_metric;
@@ -478,25 +477,6 @@ sound_file* get_sound_file(AudibleAlert alert) {
   return NULL;
 }
 
-void play_alert_sound(AudibleAlert alert) {
-  sound_file* sound = get_sound_file(alert);
-  char* error = NULL;
-
-  slplay_play(sound->uri, sound->loop, &error);
-  if(error) {
-    LOGW("error playing sound: %s", error);
-  }
-}
-
-void stop_alert_sound(AudibleAlert alert) {
-  sound_file* sound = get_sound_file(alert);
-  char* error = NULL;
-
-  slplay_stop_uri(sound->uri, &error);
-  if(error) {
-    LOGW("error stopping sound: %s", error);
-  }
-}
 
 void ui_sound_init(char **error) {
   slplay_setup(error);
@@ -691,6 +671,43 @@ static void ui_init_vision(UIState *s, const VisionStreamBufs back_bufs,
   s->longitudinal_control_timeout = UI_FREQ / 3;
   s->is_metric_timeout = UI_FREQ / 2;
   s->limit_set_speed_timeout = UI_FREQ;
+}
+
+static void ui_draw_transformed_box(UIState *s, uint32_t color) {
+  const UIScene *scene = &s->scene;
+
+  const mat3 bbt = scene->warp_matrix;
+
+  struct {
+    vec3 pos;
+    uint32_t color;
+  } verts[] = {
+    {matvecmul3(bbt, (vec3){{0.0, 0.0, 1.0,}}), color},
+    {matvecmul3(bbt, (vec3){{scene->transformed_width, 0.0, 1.0,}}), color},
+    {matvecmul3(bbt, (vec3){{scene->transformed_width, scene->transformed_height, 1.0,}}), color},
+    {matvecmul3(bbt, (vec3){{0.0, scene->transformed_height, 1.0,}}), color},
+    {matvecmul3(bbt, (vec3){{0.0, 0.0, 1.0,}}), color},
+  };
+
+  for (int i=0; i<ARRAYSIZE(verts); i++) {
+    verts[i].pos.v[0] = verts[i].pos.v[0] / verts[i].pos.v[2];
+    verts[i].pos.v[1] = s->rgb_height - verts[i].pos.v[1] / verts[i].pos.v[2];
+  }
+
+  glUseProgram(s->line_program);
+
+  mat4 out_mat = matmul(device_transform,
+                        matmul(frame_transform, s->rgb_transform));
+  glUniformMatrix4fv(s->line_transform_loc, 1, GL_TRUE, out_mat.v);
+
+  glEnableVertexAttribArray(s->line_pos_loc);
+  glVertexAttribPointer(s->line_pos_loc, 2, GL_FLOAT, GL_FALSE, sizeof(verts[0]), &verts[0].pos.v[0]);
+
+  glEnableVertexAttribArray(s->line_color_loc);
+  glVertexAttribPointer(s->line_color_loc, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(verts[0]), &verts[0].color);
+
+  assert(glGetError() == GL_NO_ERROR);
+  glDrawArrays(GL_LINE_STRIP, 0, ARRAYSIZE(verts));
 }
 
 // Projects a point in car to space to the corresponding point in full frame
@@ -1085,6 +1102,13 @@ static void ui_draw_world(UIState *s) {
 }
 
 static void ui_draw_vision_maxspeed(UIState *s) {
+   //BB START: add new measures panel  const int bb_dml_w = 180;
+   bb_ui_draw_UI(s) ;
+  //BB END: add new measures panel
+  return;
+  
+   //naah to that one
+
   /*if (!s->longitudinal_control){
     return;
   }*/
@@ -1176,13 +1200,11 @@ static void ui_draw_vision_maxspeed(UIState *s) {
     nvgFillColor(s->vg, nvgRGBA(255, 255, 255, 100));
     nvgText(s->vg, viz_maxspeed_x+(viz_maxspeed_xo/2)+(viz_maxspeed_w/2), 242, "N/A", NULL);
   }
-  //BB START: add new measures panel  const int bb_dml_w = 180;
-	bb_ui_draw_UI(s) ;
-  //BB END: add new measures panel
-
 }
 
 static void ui_draw_vision_speedlimit(UIState *s) {
+  //no need for that one either
+  return;
   const UIScene *scene = &s->scene;
   int ui_viz_rx = scene->ui_viz_rx;
   int ui_viz_rw = scene->ui_viz_rw;
@@ -1298,11 +1320,11 @@ static void ui_draw_vision_speed(UIState *s) {
   nvgFontSize(s->vg, 36*2.5);
   nvgFillColor(s->vg, nvgRGBA(255, 255, 255, 200));
 
-  if (s->is_metric) {
-    nvgText(s->vg, viz_speed_x+viz_speed_w/2, 320, "kph", NULL);
-  } else {
-    nvgText(s->vg, viz_speed_x+viz_speed_w/2, 320, "mph", NULL);
-  }
+  //if (s->is_metric) {
+    //nvgText(s->vg, viz_speed_x+viz_speed_w/2, 320, "kph", NULL);
+  //} else {
+    //nvgText(s->vg, viz_speed_x+viz_speed_w/2, 320, "mph", NULL);
+  //}
 }
 
 static void ui_draw_vision_event(UIState *s) {
@@ -1663,9 +1685,6 @@ void handle_message(UIState *s, void *which) {
     struct cereal_ControlsState datad;
     cereal_read_ControlsState(&datad, eventd.controlsState);
 
-    s->controls_timeout = 1 * UI_FREQ;
-    s->controls_seen = true;
-
     if (datad.vCruise != s->scene.v_cruise) {
       s->scene.v_cruise_update_ts = eventd.logMonoTime;
     }
@@ -1685,19 +1704,36 @@ void handle_message(UIState *s, void *which) {
 
     s->scene.decel_for_model = datad.decelForModel;
 
-    if (datad.alertSound != cereal_CarControl_HUDControl_AudibleAlert_none && datad.alertSound != s->alert_sound) {
+    s->alert_sound_timeout = 1 * UI_FREQ;
+
+    if (datad.alertSound != cereal_CarControl_HUDControl_AudibleAlert_none && datad.alertSound != s->alert_sound && bts != 0) {
+      char* error = NULL;
       if (s->alert_sound != cereal_CarControl_HUDControl_AudibleAlert_none) {
-        stop_alert_sound(s->alert_sound);
+        sound_file* active_sound = get_sound_file(s->alert_sound);
+        slplay_stop_uri(active_sound->uri, &error);
+        if (error) {
+          LOGW("error stopping active sound %s", error);
+        }
       }
-      if (bts !=0) {
-        play_alert_sound(datad.alertSound);
+
+      sound_file* sound = get_sound_file(datad.alertSound);
+      slplay_play(sound->uri, sound->loop, &error);
+
+      if(error) {
+        LOGW("error playing sound: %s", error);
       }
 
       s->alert_sound = datad.alertSound;
       snprintf(s->alert_type, sizeof(s->alert_type), "%s", datad.alertType.str);
-    } else if ((!datad.alertSound || datad.alertSound == cereal_CarControl_HUDControl_AudibleAlert_none)
-                  && s->alert_sound != cereal_CarControl_HUDControl_AudibleAlert_none) {
-      stop_alert_sound(s->alert_sound);
+    } else if ((!datad.alertSound || datad.alertSound == cereal_CarControl_HUDControl_AudibleAlert_none) && s->alert_sound != cereal_CarControl_HUDControl_AudibleAlert_none && bts != 0) {
+      sound_file* sound = get_sound_file(s->alert_sound);
+
+      char* error = NULL;
+
+      slplay_stop_uri(sound->uri, &error);
+      if(error) {
+        LOGW("error stopping sound: %s", error);
+      }
       s->alert_type[0] = '\0';
       s->alert_sound = cereal_CarControl_HUDControl_AudibleAlert_none;
     }
@@ -1768,6 +1804,13 @@ void handle_message(UIState *s, void *which) {
     s->scene.world_objects_visible = true;
     struct cereal_LiveCalibrationData datad;
     cereal_read_LiveCalibrationData(&datad, eventd.liveCalibration);
+
+    // should we still even have this?
+    capn_list32 warpl = datad.warpMatrix2;
+    capn_resolve(&warpl.p);  // is this a bug?
+    for (int i = 0; i < 3 * 3; i++) {
+      s->scene.warp_matrix.v[i] = capn_to_f32(capn_get32(warpl, i));
+    }
 
     capn_list32 extrinsicl = datad.extrinsicMatrix;
     capn_resolve(&extrinsicl.p);  // is this a bug?
@@ -2390,31 +2433,18 @@ int main(int argc, char* argv[]) {
       set_volume(s, volume);
     }
 
-    if (s->controls_timeout > 0) {
-      s->controls_timeout--;
-    } else {
-      // stop playing alert sound
-      if ((!s->vision_connected || (s->vision_connected && s->alert_sound_timeout == 0)) &&
-            s->alert_sound != cereal_CarControl_HUDControl_AudibleAlert_none) {
-        stop_alert_sound(s->alert_sound);
-        s->alert_sound = cereal_CarControl_HUDControl_AudibleAlert_none;
-      }
-
-      // if visiond is still running and controlsState times out, display an alert
-      if (s->controls_seen && s->vision_connected && strcmp(s->scene.alert_text2, "Controls Unresponsive") != 0) {
-        s->scene.alert_size = ALERTSIZE_FULL;
-        update_status(s, STATUS_ALERT);
-        snprintf(s->scene.alert_text1, sizeof(s->scene.alert_text1), "%s", "TAKE CONTROL IMMEDIATELY");
-        snprintf(s->scene.alert_text2, sizeof(s->scene.alert_text2), "%s", "Controls Unresponsive");
-        ui_draw_vision_alert(s, s->scene.alert_size, s->status, s->scene.alert_text1, s->scene.alert_text2);
-
-        s->alert_sound_timeout = 2 * UI_FREQ;
-
-        s->alert_sound = cereal_CarControl_HUDControl_AudibleAlert_chimeWarningRepeat;
-        play_alert_sound(s->alert_sound);
-      }
+    // stop playing alert sounds if no controlsState msg for 1 second
+    if (s->alert_sound_timeout > 0) {
       s->alert_sound_timeout--;
-      s->controls_seen = false;
+    } else if (s->alert_sound != cereal_CarControl_HUDControl_AudibleAlert_none){
+      sound_file* sound = get_sound_file(s->alert_sound);
+      char* error = NULL;
+
+      slplay_stop_uri(sound->uri, &error);
+      if(error) {
+        LOGW("error stopping sound: %s", error);
+      }
+      s->alert_sound = cereal_CarControl_HUDControl_AudibleAlert_none;
     }
 
     read_param_bool_timeout(&s->is_metric, "IsMetric", &s->is_metric_timeout);

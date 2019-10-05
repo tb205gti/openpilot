@@ -423,6 +423,7 @@ void bb_ui_draw_custom_alert( UIState *s) {
 
 
 void bb_ui_draw_measures_left( UIState *s, int bb_x, int bb_y, int bb_w ) {
+//we do not want the left measures!
 	const UIScene *scene = &s->scene;		
 	int bb_rx = bb_x + (int)(bb_w/2);
 	int bb_ry = bb_y;
@@ -773,7 +774,7 @@ void bb_ui_draw_measures_right( UIState *s, int bb_x, int bb_y, int bb_w ) {
 	}
 	
 	//add  desired steering angle
-	if (true) {
+	if (false) {
 		char val_str[16];
 		char uom_str[6];
 		NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
@@ -790,6 +791,38 @@ void bb_ui_draw_measures_right( UIState *s, int bb_x, int bb_y, int bb_w ) {
 
 	    snprintf(uom_str, sizeof(uom_str), "deg");
 		bb_h +=bb_ui_draw_measure(s,  val_str, uom_str, "DES STEER", 
+				bb_rx, bb_ry, bb_uom_dx,
+				val_color, lab_color, uom_color, 
+				value_fontSize, label_fontSize, uom_fontSize );
+		bb_ry = bb_y + bb_h;
+	}
+	
+	//add grey panda GPS accuracy
+	if (true) {
+		char val_str[16];
+		char uom_str[3];
+		NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
+		//show red/orange if gps accuracy is high
+	    if(s->b.gpsAccuracy > 0.59) {
+	       val_color = nvgRGBA(255, 188, 3, 200);
+	    }
+	    if(s->b.gpsAccuracy > 0.8) {
+	       val_color = nvgRGBA(255, 0, 0, 200);
+	    }
+
+
+		// gps accuracy is always in meters
+		if (true) {
+			 snprintf(val_str, sizeof(val_str), "%d", (int)(s->b.gpsAccuracy*100.0));
+		} else {
+			 snprintf(val_str, sizeof(val_str), "%.1f", s->b.gpsAccuracy * 3.28084 * 12);
+		}
+		if (true) {
+			snprintf(uom_str, sizeof(uom_str), "cm");;
+		} else {
+			snprintf(uom_str, sizeof(uom_str), "in");
+		}
+		bb_h +=bb_ui_draw_measure(s,  val_str, uom_str, "GPS PREC", 
 				bb_rx, bb_ry, bb_uom_dx,
 				val_color, lab_color, uom_color, 
 				value_fontSize, label_fontSize, uom_fontSize );
@@ -976,6 +1009,7 @@ void ui_draw_vision_grid( UIState *s) {
 }
 
 void bb_ui_draw_logo( UIState *s) {
+  return;
   if ((s->status != STATUS_DISENGAGED) && (s->status != STATUS_STOPPED)) { //(s->status != STATUS_DISENGAGED) {//
     return;
   }
@@ -1155,11 +1189,9 @@ void bb_ui_draw_UI( UIState *s) {
 	  const int bb_dmr_w = 180;
 	  const int bb_dmr_x = scene->ui_viz_rx + scene->ui_viz_rw - bb_dmr_w - (bdr_s*2) ; 
 	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
-    bb_ui_draw_measures_left(s,bb_dml_x, bb_dml_y, bb_dml_w );
     bb_ui_draw_measures_right(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
-    bb_ui_draw_logo(s);
 	 }
    if (s->b.tri_state_switch ==2) {
 	 	const UIScene *scene = &s->scene;
