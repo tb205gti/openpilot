@@ -619,7 +619,7 @@ def main():
   if os.getenv("PREPAREONLY") is not None:
     spinner_proc = None
   else:
-    spinner_text = "chffrplus" if params.get("Passive")=="1" else "openpilot"
+    spinner_text = "chffrplus" if params.get("Passive")=="1" else "Tesla Dashcam"
     spinner_proc = subprocess.Popen(["./spinner", "Loading %s"%spinner_text],
       cwd=os.path.join(BASEDIR, "selfdrive", "ui", "spinner"),
       close_fds=True)

@@ -17,8 +17,8 @@ function launch {
   # apply update
   if [ $do_auto_update == "True" ]; then
     if [ "$(git rev-parse HEAD)" != "$(git rev-parse @{u})" ]; then
-      git reset --hard @{u} &&
-      git clean -xdf &&
+#      git reset --hard @{u} &&
+#      git clean -xdf &&
 
       # Touch all files on release2 after checkout to prevent rebuild
       BRANCH=$(git rev-parse --abbrev-ref HEAD)
