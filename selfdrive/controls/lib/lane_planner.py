@@ -99,7 +99,7 @@ class LanePlanner(object):
 
 
     # Don't exit dive, set r_prob lower if the lane goes too wide
-     if abs(self.l_poly[3] - self.r_poly[3]) > (self.lane_width + 0.4):
+    if abs(self.l_poly[3] - self.r_poly[3]) > (self.lane_width + 0.4):
        self.r_prob = self.r_prob / interp(self.l_prob, [0, 1], [1, 3])
 
     # ALCA integration
