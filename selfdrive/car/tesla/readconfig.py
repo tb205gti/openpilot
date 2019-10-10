@@ -337,7 +337,7 @@ class ConfigFile(object):
       if file_changed:
         did_write = True
         with open(config_path, self.config_file_w) as configfile:
-          config.write(configfile)
+          config.encode("utf-8").write(configfile)
       else:
         did_write = False
 
