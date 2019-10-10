@@ -342,7 +342,7 @@ def thermald_thread():
     thermal_status_prev = thermal_status
     usb_power_prev = usb_power
 
-    print(msg)
+    print('BatteryCurrent: {}'.format(msg.thermal.batteryCurrent))
 
     # report to server once per minute
     if (count % int(60. / DT_TRML)) == 0:
