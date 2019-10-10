@@ -40,7 +40,7 @@ lidarPts: [8030, true, 0.]
 procLog: [8031, true, 0.5]
 gpsLocationExternal: [8032, true, 10., 1]
 ubloxGnss: [8033, true, 10.]
-clocks: [8034, true, 1.]
+clocks: [8034, true, 1., 1]
 liveMpc: [8035, false, 20.]
 liveLongitudinalMpc: [8036, false, 20.]
 plusFrame: [8037, false, 0.]
@@ -79,23 +79,6 @@ carParams: [8071, true, 0.02, 1]
 testModel: [8040, false, 0.]
 testLiveLocation: [8045, false, 0.]
 testJoystick: [8056, false, 0.]
-
-#ui Events
-uiButtonInfo: [8201, false, 0.]
-uiCustomAlert: [8202, false, 0.]
-uiSetCar: [8203, false, 0.]
-uiButtonStatus: [8204, false, 0.]
-uiPlaySound: [8205, false, 0.]
-uiUpdate: [8206, false, 0.]
-uiGyroInfo: [8207, false, 0.]
-
-#tesla bosch radar integration
-uiIcCarLR: [8208, false, 0.]
-uiIcLeads: [8211, false, 0.]
-
-#alca Events
-alcaStatus: [8209, false, 0.]
-alcaState: [8210, false, 0.]
 
 # 8080 is reserved for slave testing daemon
 # 8762 is reserved for logserver

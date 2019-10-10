@@ -19,6 +19,7 @@ assert sec_since_boot
 DT_CTRL = 0.01  # controlsd
 DT_PLAN = 0.05  # mpc
 DT_MDL = 0.05  # model
+DT_RDR = 0.05  # radar
 DT_DMON = 0.1  # driver monitoring
 DT_TRML = 0.5  # thermald and manager
 
@@ -43,7 +44,7 @@ def set_realtime_priority(level):
   return subprocess.call(['chrt', '-f', '-p', str(level), str(tid)])
 
 
-class Ratekeeper(object):
+class Ratekeeper():
   def __init__(self, rate, print_delay_threshold=0.):
     """Rate in Hz for ratekeeping. print_delay_threshold must be nonnegative."""
     self._interval = 1. / rate
@@ -62,12 +63,10 @@ class Ratekeeper(object):
     return self._remaining
 
   # Maintain loop rate by calling this at the end of each loop
-  def keep_time(self, offset=0.):
+  def keep_time(self):
     lagged = self.monitor_time()
     if self._remaining > 0:
       time.sleep(self._remaining)
-    elif not offset == 0.:
-      self._next_frame_time += offset
     return lagged
 
   # this only monitor the cumulative lag, but does not enforce a rate

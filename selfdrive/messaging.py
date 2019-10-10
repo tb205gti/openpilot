@@ -4,8 +4,6 @@ from cereal import log
 from common.realtime import sec_since_boot
 from selfdrive.services import service_list
 
-MSG_ERROR_LVL = 2
-
 def new_message():
   dat = log.Event.new_message()
   dat.logMonoTime = int(sec_since_boot() * 1e9)
@@ -32,6 +30,24 @@ def sub_sock(port, poller=None, addr="127.0.0.1", conflate=False, timeout=None):
   if poller is not None:
     poller.register(sock, zmq.POLLIN)
   return sock
+
+
+def drain_sock_raw_poller(poller, sock, wait_for_one=False):
+  ret = []
+
+  if wait_for_one:
+    try:
+      ret.append(sock.recv())
+    except zmq.error.Again: # Thrown when there is timeout on the socket
+      return ret
+
+  while True:
+    if not poller.poll(0):
+      break # Socket has no more messages
+
+    ret.append(sock.recv())
+
+  return ret
 
 def drain_sock_raw(sock, wait_for_one=False):
   ret = []
@@ -86,7 +102,7 @@ def recv_one_or_none(sock):
     return None
 
 
-class SubMaster(object):
+class SubMaster():
   def __init__(self, services, ignore_alive=None, addr="127.0.0.1"):
     self.poller = zmq.Poller()
     self.frame = -1
@@ -94,13 +110,11 @@ class SubMaster(object):
     self.rcv_time = {s : 0. for s in services}
     self.rcv_frame = {s : 0 for s in services}
     self.alive = {s : False for s in services}
-    self.alive_cnt = {s: 0 for s in services}
     self.sock = {}
     self.freq = {}
     self.data = {}
     self.logMonoTime = {}
     self.valid = {}
-    self.valid_cnt = {s: 0 for s in services}
 
     if ignore_alive is not None:
       self.ignore_alive = ignore_alive
@@ -112,17 +126,17 @@ class SubMaster(object):
       if addr is not None:
         self.sock[s] = sub_sock(service_list[s].port, poller=self.poller, addr=addr, conflate=True)
       self.freq[s] = service_list[s].frequency
+
       data = new_message()
-      data.init(s)
+      if s in ['can', 'sensorEvents', 'liveTracks', 'sendCan',
+               'ethernetData', 'cellInfo', 'wifiScan',
+               'trafficEvents', 'orbObservation', 'carEvents']:
+        data.init(s, 0)
+      else:
+        data.init(s)
       self.data[s] = getattr(data, s)
       self.logMonoTime[s] = 0
-      if data.valid:
-        self.valid_cnt[s] = 0
-        self.valid[s] = True
-      else:
-        self.valid_cnt[s] += 1
-        if self.valid_cnt[s] >= MSG_ERROR_LVL:
-            self.valid[s] = False
+      self.valid[s] = data.valid
 
   def __getitem__(self, s):
     return self.data[s]
@@ -144,120 +158,25 @@ class SubMaster(object):
       self.rcv_frame[s] = self.frame
       self.data[s] = getattr(msg, s)
       self.logMonoTime[s] = msg.logMonoTime
-      if msg.valid:
-        self.valid_cnt[s] = 0
-        self.valid[s] = True
-      else:
-        self.valid_cnt[s] += 1
-        if self.valid_cnt[s] >=  MSG_ERROR_LVL:
-            self.valid[s] = False
+      self.valid[s] = msg.valid
 
     for s in self.data:
       # arbitrary small number to avoid float comparison. If freq is 0, we can skip the check
       if self.freq[s] > 1e-5:
         # alive if delay is within 10x the expected frequency
-        if (cur_time - self.rcv_time[s]) < (10. / self.freq[s]):
-          self.alive_cnt[s] = 0
-          self.alive[s] = True
-        else:
-          self.alive_cnt[s] += 1
-          if self.alive_cnt[s] >= MSG_ERROR_LVL:
-              self.alive[s] = False
+        self.alive[s] = (cur_time - self.rcv_time[s]) < (10. / self.freq[s])
       else:
-        self.alive_cnt[s] = 0
         self.alive[s] = True
 
-  def all_alive_with_info(self, service_list=None):
-    """Returns alive state for tracked processes.
-    Args:
-        service_list (list): Optional service list.
-    Returns:
-        tuple: areAllAlive, processName, count
-    """
-    if service_list is None:  # check all
-      service_list = self.alive.keys()
-    areAllAlive = True
-    processName = ""
-    count = 0
-    for s in service_list:
-      if not self.alive[s]:
-        areAllAlive = False
-        processName = s
-        count = self.alive_cnt[s]
-        break
-    return (areAllAlive, processName, count)
-
   def all_alive(self, service_list=None):
-    """Returns alive state for tracked processes.
-
-    Args:
-        service_list (list): Optional service list.
-
-    Returns:
-        tuple: areAllAlive, processName, count
-    """
     if service_list is None:  # check all
       service_list = self.alive.keys()
     return all(self.alive[s] for s in service_list if s not in self.ignore_alive)
 
   def all_valid(self, service_list=None):
-    """Returns valid state for tracked processes.
-
-    Args:
-        service_list (list): Optional service list.
-
-    Returns:
-        tuple: areAllValid, processName, count
-    """
     if service_list is None:  # check all
       service_list = self.valid.keys()
-    areAllValid = True
-    processName = ""
-    count = 0
-    for s in service_list:
-      if not self.valid[s]:
-        areAllValid = False
-        processName = s
-        count = self.valid_cnt[s]
-        break
-    return areAllValid
-
-  def all_valid_with_info(self, service_list=None):
-    """Returns valid state for tracked processes.
-
-    Args:
-        service_list (list): Optional service list.
-
-    Returns:
-        tuple: areAllValid, processName, count
-    """
-    if service_list is None:  # check all
-      service_list = self.valid.keys()
-    areAllValid = True
-    processName = ""
-    count = 0
-    for s in service_list:
-      if not self.valid[s]:
-        areAllValid = False
-        processName = s
-        count = self.valid_cnt[s]
-        break
-    return (areAllValid, processName, count)
-
-  def all_alive_and_valid_with_info(self, service_list=None):
-    """Returns alive and valid state for tracked processes.
-
-    Args:
-        service_list (list): Optional service list.
-
-    Returns:
-        tuple: areAllAlive, areAllValid, aliveProcessName, aliveCount, validProcessName, validCount
-    """
-    if service_list is None:  # check all
-      service_list = self.alive.keys()
-    areAllAlive, aliveProcessName, aliveCount = self.all_alive(service_list=service_list)
-    areAllValid, validProcessName, validCount = self.all_valid(service_list=service_list)
-    return (areAllAlive, areAllValid, aliveProcessName, aliveCount, validProcessName, )
+    return all(self.valid[s] for s in service_list)
 
   def all_alive_and_valid(self, service_list=None):
     if service_list is None:  # check all
@@ -273,6 +192,6 @@ class PubMaster():
 
   def send(self, s, dat):
     # accept either bytes or capnp builder
-    if not isinstance(dat, str):
+    if not isinstance(dat, bytes):
       dat = dat.to_bytes()
     self.sock[s].send(dat)

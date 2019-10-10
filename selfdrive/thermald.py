@@ -1,21 +1,31 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3.7
 import os
+import json
+import copy
+import datetime
 from smbus2 import SMBus
 from cereal import log
+from common.basedir import BASEDIR
+from common.params import Params
+from common.realtime import sec_since_boot, DT_TRML
+from common.numpy_fast import clip
+from common.filter_simple import FirstOrderFilter
 from selfdrive.version import terms_version, training_version
 from selfdrive.swaglog import cloudlog
 import selfdrive.messaging as messaging
 from selfdrive.services import service_list
 from selfdrive.loggerd.config import get_available_percent
-from common.params import Params
-from common.realtime import sec_since_boot, DT_TRML
-from common.numpy_fast import clip
-from common.filter_simple import FirstOrderFilter
 from selfdrive.car.tesla.readconfig import read_config_file,CarSettings
+
 
 ThermalStatus = log.ThermalData.ThermalStatus
 CURRENT_TAU = 15.   # 15s time constant
+DAYS_NO_CONNECTIVITY_MAX = 7  # do not allow to engage after a week without internet
+DAYS_NO_CONNECTIVITY_PROMPT = 4  # send an offroad prompt after 4 days with no internet
 
+
+with open(BASEDIR + "/selfdrive/controls/lib/alerts_offroad.json") as json_file:
+  OFFROAD_ALERTS = json.load(json_file)
 
 def read_tz(x):
   with open("/sys/devices/virtual/thermal/thermal_zone%d/temp" % x) as f:
@@ -84,11 +94,13 @@ _TEMP_THRS_L = [42.5, 57.5, 72.5, 10000]
 _FAN_SPEEDS = [0, 16384, 32768, 65535]
 # max fan speed only allowed if battery is hot
 _BAT_TEMP_THERSHOLD = 45.
+
 if CarSettings().get_value("hasNoctuaFan"):
   # fan speed options
   _FAN_SPEEDS = [0, 65535, 65535, 65535] # Noctua fan is super quiet, so it can run on high most of the time.
   # max fan speed only allowed if battery is hot
   _BAT_TEMP_THERSHOLD = 20. # No need to wait for the battery to get hot, when you have a Notua fan.
+
 
 def handle_fan(max_cpu_temp, bat_temp, fan_speed):
   new_speed_h = next(speed for speed, temp_h in zip(_FAN_SPEEDS, _TEMP_THRS_H) if temp_h > max_cpu_temp)
@@ -105,9 +117,10 @@ def handle_fan(max_cpu_temp, bat_temp, fan_speed):
     # no max fan speed unless battery is hot
     fan_speed = min(fan_speed, _FAN_SPEEDS[-2])
 
-  set_eon_fan(fan_speed/16384)
+  set_eon_fan(fan_speed//16384)
 
   return fan_speed
+
 
 
 def check_car_battery_voltage(should_start, health, charging_disabled, msg, limitBatteryMinMax, batt_min, batt_max):
@@ -119,14 +132,13 @@ def check_car_battery_voltage(should_start, health, charging_disabled, msg, limi
 
   limitBatteryMin = limitBatteryMinMax and (msg.thermal.batteryPercent < batt_min)
   limitBatteryMax = limitBatteryMinMax and (msg.thermal.batteryPercent > batt_max)
-  #print limitBatteryMinMax,batt_min, batt_max, msg.thermal.batteryPercent
+   #print limitBatteryMinMax,batt_min, batt_max, msg.thermal.batteryPercent
   if charging_disabled and (health is None or health.health.voltage > 11800) and (limitBatteryMin or not limitBatteryMinMax):
     charging_disabled = False
     os.system('echo "1" > /sys/class/power_supply/battery/charging_enabled')
   elif (not charging_disabled) and ((health is not None and health.health.voltage < 11500 and not should_start) or limitBatteryMax):
     charging_disabled = True
     os.system('echo "0" > /sys/class/power_supply/battery/charging_enabled')
-
   return charging_disabled
 
 
@@ -155,13 +167,13 @@ def thermald_thread():
   ignition_seen = False
   started_seen = False
   thermal_status = ThermalStatus.green
+  thermal_status_prev = ThermalStatus.green
+  usb_power = True
+  usb_power_prev = True
   health_sock.RCVTIMEO = int(1000 * 2 * DT_TRML)  # 2x the expected health frequency
   current_filter = FirstOrderFilter(0., CURRENT_TAU, DT_TRML)
   health_prev = None
-
-  # Make sure charging is enabled
-  charging_disabled = False
-  os.system('echo "1" > /sys/class/power_supply/battery/charging_enabled')
+  current_connectivity_alert = None
 
   params = Params()
 
@@ -174,14 +186,17 @@ def thermald_thread():
     # clear car params when panda gets disconnected
     if health is None and health_prev is not None:
       params.panda_disconnect()
+      ignition_seen = False
     health_prev = health
+
+    if health is not None:
+      usb_power = health.health.usbPowerMode != log.HealthData.UsbPowerMode.client
 
     # loggerd is gated based on free space
     avail = get_available_percent() / 100.0
 
     # thermal message now also includes free space
     msg.thermal.freeSpace = avail
-    charger_off = False
     with open("/sys/class/power_supply/battery/capacity") as f:
       msg.thermal.batteryPercent = int(f.read())
     with open("/sys/class/power_supply/battery/status") as f:
@@ -192,9 +207,7 @@ def thermald_thread():
       msg.thermal.batteryVoltage = int(f.read())
     with open("/sys/class/power_supply/usb/present") as f:
       msg.thermal.usbOnline = bool(int(f.read()))
-    with open("/sys/class/power_supply/battery/charge_type") as f:
-      charger_status = f.read().strip()
-    charger_off = (charger_status == "N/A")
+
     current_filter.update(msg.thermal.batteryCurrent / 1e6)
 
     # TODO: add car battery voltage check
@@ -227,16 +240,41 @@ def thermald_thread():
 
     # **** starting logic ****
 
+    # Check for last update time and display alerts if needed
+    now = datetime.datetime.now()
+    try:
+      last_update = datetime.datetime.fromisoformat(params.get("LastUpdateTime", encoding='utf8'))
+    except (TypeError, ValueError):
+      last_update = now
+    dt = now - last_update
+
+    if dt.days > DAYS_NO_CONNECTIVITY_MAX:
+      if current_connectivity_alert != "expired":
+        current_connectivity_alert = "expired"
+        params.delete("Offroad_ConnectivityNeededPrompt")
+        params.put("Offroad_ConnectivityNeeded", json.dumps(OFFROAD_ALERTS["Offroad_ConnectivityNeeded"]))
+    elif dt.days > DAYS_NO_CONNECTIVITY_PROMPT:
+      remaining_time = str(DAYS_NO_CONNECTIVITY_MAX - dt.days)
+      if current_connectivity_alert != "prompt" + remaining_time:
+        current_connectivity_alert = "prompt" + remaining_time
+        alert_connectivity_prompt = copy.copy(OFFROAD_ALERTS["Offroad_ConnectivityNeededPrompt"])
+        alert_connectivity_prompt["text"] += remaining_time + " days."
+        params.delete("Offroad_ConnectivityNeeded")
+        params.put("Offroad_ConnectivityNeededPrompt", json.dumps(alert_connectivity_prompt))
+    elif current_connectivity_alert is not None:
+      current_connectivity_alert = None
+      params.delete("Offroad_ConnectivityNeeded")
+      params.delete("Offroad_ConnectivityNeededPrompt")
+
     # start constellation of processes when the car starts
     ignition = health is not None and health.health.started
-    # print "Ignition from panda: ", ignition
     ignition_seen = ignition_seen or ignition
 
     # add voltage check for ignition
-    #if not ignition_seen and health is not None and health.health.voltage > 13500:
-    #  ignition = True
+    if not ignition_seen and health is not None and health.health.voltage > 13500:
+      ignition = True
 
-    do_uninstall = params.get("DoUninstall") == "1"
+    do_uninstall = params.get("DoUninstall") == b"1"
     accepted_terms = params.get("HasAcceptedTerms") == terms_version
     completed_training = params.get("CompletedTrainingVersion") == training_version
 
@@ -254,13 +292,16 @@ def thermald_thread():
     # if any CPU gets above 107 or the battery gets above 63, kill all processes
     # controls will warn with CPU above 95 or battery above 60
     if thermal_status >= ThermalStatus.danger:
-      # TODO: Add a better warning when this is happening
       should_start = False
+      if thermal_status_prev < ThermalStatus.danger:
+        params.put("Offroad_TemperatureTooHigh", json.dumps(OFFROAD_ALERTS["Offroad_TemperatureTooHigh"]))
+    else:
+      if thermal_status_prev >= ThermalStatus.danger:
+        params.delete("Offroad_TemperatureTooHigh")
 
     if should_start:
       off_ts = None
       if started_ts is None:
-        params.car_start()
         started_ts = sec_since_boot()
         started_seen = True
         os.system('echo performance > /sys/class/devfreq/soc:qcom,cpubw/governor')
@@ -279,15 +320,25 @@ def thermald_thread():
     charging_disabled = check_car_battery_voltage(should_start, health, charging_disabled, msg, limitBatteryMinMax, batt_min, batt_max)
 
     msg.thermal.chargingDisabled = charging_disabled
-    #BB added "and not charging_disabled" below so we don't show red LED when not charging
+
+     #BB added "and not charging_disabled" below so we don't show red LED when not charging
     msg.thermal.chargingError = (current_filter.x > 0.) and (msg.thermal.batteryPercent < 90) and not charging_disabled   # if current is > 1A out, then charger might be off
-     
+
     msg.thermal.started = started_ts is not None
     msg.thermal.startedTs = int(1e9*(started_ts or 0))
 
     msg.thermal.thermalStatus = thermal_status
     thermal_sock.send(msg.to_bytes())
-    #print msg
+
+    if usb_power_prev and not usb_power:
+      params.put("Offroad_ChargeDisabled", json.dumps(OFFROAD_ALERTS["Offroad_ChargeDisabled"]))
+    elif usb_power and not usb_power_prev:
+      params.delete("Offroad_ChargeDisabled")
+
+    thermal_status_prev = thermal_status
+    usb_power_prev = usb_power
+
+    print(msg)
 
     # report to server once per minute
     if (count % int(60. / DT_TRML)) == 0:

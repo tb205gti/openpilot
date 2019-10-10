@@ -4,7 +4,7 @@ from cereal import car
 from cereal import log
 
 
-class LatControlPID(object):
+class LatControlPID():
   def __init__(self, CP):
     self.pid = PIController((CP.lateralTuning.pid.kpBP, CP.lateralTuning.pid.kpV),
                             (CP.lateralTuning.pid.kiBP, CP.lateralTuning.pid.kiV),
@@ -14,7 +14,7 @@ class LatControlPID(object):
   def reset(self):
     self.pid.reset()
 
-  def update(self, active, v_ego, angle_steers, angle_steers_rate, eps_torque, steer_override, CP, VM, path_plan):
+  def update(self, active, v_ego, angle_steers, angle_steers_rate, eps_torque, steer_override, CP, path_plan):
     pid_log = log.ControlsState.LateralPIDState.new_message()
     pid_log.steerAngle = float(angle_steers)
     pid_log.steerRate = float(angle_steers_rate)
@@ -24,7 +24,7 @@ class LatControlPID(object):
       pid_log.active = False
       self.pid.reset()
     else:
-      self.angle_steers_des = path_plan.angleSteers
+      self.angle_steers_des = path_plan.angleSteers  # get from MPC/PathPlanner
 
       steers_max = get_steer_max(CP, v_ego)
       self.pid.pos_limit = steers_max
@@ -45,5 +45,4 @@ class LatControlPID(object):
       pid_log.saturated = bool(self.pid.saturated)
 
     self.sat_flag = self.pid.saturated
-    # we only deal with Tesla, so we return two angles, no torque info
-    return float(self.angle_steers_des), path_plan.angleSteers, pid_log
+    return output_steer, float(self.angle_steers_des), pid_log

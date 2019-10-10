@@ -1,4 +1,4 @@
-//#define EON 
+//#define EON
 //#define PANDA
 
 // ********************* Includes *********************
@@ -23,7 +23,6 @@
 #include "drivers/clock.h"
 
 #include "gpio.h"
-#include "drivers/lin.h"
 
 #ifndef EON
 #include "drivers/spi.h"
@@ -79,11 +78,14 @@ void started_interrupt_handler(uint8_t interrupt_line) {
     // jenky debounce
     delay(100000);
 
-    // set power savings mode here if on EON build
     #ifdef EON
-      //int power_save_state = current_board->check_ignition() ? POWER_SAVE_STATUS_DISABLED : POWER_SAVE_STATUS_ENABLED;
-      int power_save_state = POWER_SAVE_STATUS_DISABLED;
+      // set power savings mode here if on EON build
+      int power_save_state = current_board->check_ignition() ? POWER_SAVE_STATUS_DISABLED : POWER_SAVE_STATUS_ENABLED;
       set_power_save_state(power_save_state);
+      // set CDP usb power mode everytime that the car starts to make sure EON is charging
+      if (current_board->check_ignition()) {
+        current_board->set_usb_power_mode(USB_POWER_CDP);
+      }
     #endif
   }
   EXTI->PR = (1U << interrupt_line);
@@ -136,7 +138,7 @@ void set_safety_mode(uint16_t mode, int16_t param) {
           }
           can_silent = ALL_CAN_LIVE;
           break;
-      }          
+      }
     if (safety_ignition_hook() != -1) {
       // if the ignition hook depends on something other than the started GPIO
       // we have to disable power savings (fix for GM and Tesla)
@@ -161,19 +163,10 @@ int get_health_pkt(void *dat) {
     uint8_t controls_allowed_pkt;
     uint8_t gas_interceptor_detected_pkt;
     uint8_t car_harness_status_pkt;
+    uint8_t usb_power_mode_pkt;
   } *health = dat;
 
-  //Voltage will be measured in mv. 5000 = 5V
-  uint32_t voltage = adc_get(ADCCHAN_VOLTAGE);
-
-  // REVC has a 10, 1 (1/11) voltage divider
-  // Here is the calculation for the scale (s)
-  // ADCV = VIN_S * (1/11) * (4095/3.3)
-  // RETVAL = ADCV * s = VIN_S*1000
-  // s = 1000/((4095/3.3)*(1/11)) = 8.8623046875
-
-  // Avoid needing floating point math
-  health->voltage_pkt = (voltage * 8862U) / 1000U;
+  health->voltage_pkt = adc_get_voltage();
 
   // No current sense on panda black
   if(hw_type != HW_TYPE_BLACK_PANDA){
@@ -185,7 +178,7 @@ int get_health_pkt(void *dat) {
   int safety_ignition = safety_ignition_hook();
   if (safety_ignition < 0) {
     //Use the GPIO pin to determine ignition
-    health->started_pkt = 1; // (uint8_t)(current_board->check_ignition());
+    health->started_pkt = (uint8_t)(current_board->check_ignition());
   } else {
     //Current safety hooks want to determine ignition (ex: GM)
     health->started_pkt = safety_ignition;
@@ -197,7 +190,8 @@ int get_health_pkt(void *dat) {
   health->can_fwd_errs_pkt = can_fwd_errs;
   health->gmlan_send_errs_pkt = gmlan_send_errs;
   health->car_harness_status_pkt = car_harness_status;
-  
+  health->usb_power_mode_pkt = usb_power_mode;
+
   return sizeof(*health);
 }
 
@@ -217,7 +211,7 @@ void usb_cb_ep2_out(void *usbdata, int len, bool hardwired) {
   uint8_t *usbdata8 = (uint8_t *)usbdata;
   uart_ring *ur = get_ring_by_number(usbdata8[0]);
   if ((len != 0) && (ur != NULL)) {
-    if ((usbdata8[0] < 2U) || safety_tx_lin_hook(usbdata8[0] - 2U, usbdata8 + 1, len - 1)) {
+    if ((usbdata8[0] < 2U) || safety_tx_lin_hook(usbdata8[0] - 2U, &usbdata8[1], len - 1)) {
       for (int i = 1; i < len; i++) {
         while (!putc(ur, usbdata8[i])) {
           // wait
@@ -348,7 +342,7 @@ int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, bool hardwired) 
         } else {
           // Disable OBD CAN
           current_board->set_can_mode(CAN_MODE_NORMAL);
-        }        
+        }
       } else {
         if (setup->b.wValue.w == 1U) {
           // GMLAN ON
@@ -364,7 +358,7 @@ int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, bool hardwired) 
         }
       }
       break;
-      
+
     // **** 0xdc: set safety mode
     case 0xdc:
       // Blocked over WiFi.
@@ -405,9 +399,12 @@ int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, bool hardwired) 
       if (!ur) {
         break;
       }
-      if (ur == &esp_ring) {
-        uart_dma_drain();
+
+      // TODO: Remove this again and fix boardd code to hande the message bursts instead of single chars
+      if (ur == &uart_ring_esp_gps) {
+        dma_pointer_handler(ur, DMA2_Stream5->NDTR);
       }
+
       // read
       while ((resp_len < MIN(setup->b.wLength.w, MAX_RESP_LEN)) &&
                          getc(ur, (char*)&resp[resp_len])) {
@@ -462,19 +459,7 @@ int usb_cb_control_msg(USB_Setup_TypeDef *setup, uint8_t *resp, bool hardwired) 
       break;
     // **** 0xe6: set USB power
     case 0xe6:
-      if (setup->b.wValue.w == 0U) {
-        puts("user setting NONE mode\n");
-        current_board->set_usb_power_mode(USB_POWER_NONE);
-      } else if (setup->b.wValue.w == 1U) {
-        puts("user setting CDP mode\n");
-        current_board->set_usb_power_mode(USB_POWER_CDP);
-      } else if (setup->b.wValue.w == 2U) {
-        puts("user setting DCP mode\n");
-        current_board->set_usb_power_mode(USB_POWER_DCP);
-      } else {
-        puts("user setting CLIENT mode\n");
-        current_board->set_usb_power_mode(USB_POWER_CLIENT);
-      }
+      current_board->set_usb_power_mode(setup->b.wValue.w);
       break;
     // **** 0xf0: do k-line wValue pulse on uart2 for Acura
     case 0xf0:
@@ -593,8 +578,8 @@ void __attribute__ ((noinline)) enable_fpu(void) {
 uint64_t tcnt = 0;
 
 // go into NOOUTPUT when the EON does not send a heartbeat for this amount of seconds.
-#define EON_HEARTBEAT_THRESHOLD_IGNITION_ON 5U
-#define EON_HEARTBEAT_THRESHOLD_IGNITION_OFF 2U
+#define EON_HEARTBEAT_IGNITION_CNT_ON 5U
+#define EON_HEARTBEAT_IGNITION_CNT_OFF 2U
 
 // called once per second
 // cppcheck-suppress unusedFunction ; used in headers not included in cppcheck
@@ -628,7 +613,7 @@ void TIM3_IRQHandler(void) {
     if (heartbeat_counter < __UINT32_MAX__) {
       heartbeat_counter += 1U;
     }
-
+    
     // check heartbeat counter if we are running EON code. If the heartbeat has been gone for a while, go to NOOUTPUT safety mode.
     //BB we do not want to disable safety mode when on tesla
     /*
@@ -639,6 +624,8 @@ void TIM3_IRQHandler(void) {
     }
     #endif
     */
+    // on to the next one
+
     // on to the next one
     tcnt += 1U;
   }
@@ -655,7 +642,7 @@ int main(void) {
   detect_configuration();
   detect_board_type();
   adc_init();
-  
+
   // print hello
   puts("\n\n\n************************ MAIN START ************************\n");
 
@@ -680,22 +667,22 @@ int main(void) {
   if (has_external_debug_serial) {
     // WEIRDNESS: without this gate around the UART, it would "crash", but only if the ESP is enabled
     // assuming it's because the lines were left floating and spurious noise was on them
-    uart_init(USART2, 115200);
+    uart_init(&uart_ring_debug, 115200);
   }
 
   if (board_has_gps()) {
-    uart_init(USART1, 9600);
+    uart_init(&uart_ring_esp_gps, 9600);
   } else {
     // enable ESP uart
-    uart_init(USART1, 115200);
+    uart_init(&uart_ring_esp_gps, 115200);
   }
 
   // there is no LIN on panda black
   if(hw_type != HW_TYPE_BLACK_PANDA){
     // enable LIN
-    uart_init(UART5, 10400);
+    uart_init(&uart_ring_lin1, 10400);
     UART5->CR2 |= USART_CR2_LINEN;
-    uart_init(USART3, 10400);
+    uart_init(&uart_ring_lin2, 10400);
     USART3->CR2 |= USART_CR2_LINEN;
   }
 
