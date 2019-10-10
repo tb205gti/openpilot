@@ -180,7 +180,9 @@ class PCCController(object):
 
   def max_v_by_speed_limit(self,pedal_set_speed_ms ,speed_limit_ms, CS):
     # if more than 10 kph / 2.78 ms, consider we have speed limit
-    if (CS.maxdrivespeed > 0)  and CS.useTeslaMapData and (CS.mapAwareSpeed or (CS.baseMapSpeedLimitMPS <2.7)):
+#    if (CS.maxdrivespeed > 0)  and CS.useTeslaMapData and (CS.mapAwareSpeed or (CS.baseMapSpeedLimitMPS <2.7)):
+# if the difference is more than 20 MPH, ignore the speed limit as it is probably wrong (an overpass' speed instead of the current road)
+    if ((CS.maxdrivespeed > 0) and CS.useTeslaMapData and (CS.mapAwareSpeed or (CS.baseMapSpeedLimitMPS <2.7)) and ((pedal_set_speed_ms-speed_limit_ms) < 46.3)):
       #do we know the based speed limit?
       sl1 = 0.
       if CS.baseMapSpeedLimitMPS >= 2.7:
@@ -669,10 +671,10 @@ def _accel_limit_multiplier(CS, lead):
   if CS.teslaModel in ["SP","SPD"]:
       accel_by_speed = OrderedDict([
         # (speed m/s, decel)
-        (0.,  0.95),  #   0 kmh
-        (10., 0.8),  #  35 kmh
-        (20., 0.6),  #  72 kmh
-        (30., 0.7)]) # 107 kmh
+        (0.,  0.6),  #   0 kmh
+        (10., 0.75),  #  35 kmh
+        (20., 0.625),  #  72 kmh
+        (30., 0.775)]) # 107 kmh
   accel_mult = _interp_map(CS.v_ego, accel_by_speed)
   if _is_present(lead):
     safe_dist_m = _safe_distance_m(CS.v_ego,CS)

@@ -414,7 +414,7 @@ void bb_draw_buttons( UIState *s) {
 
 void bb_ui_draw_custom_alert( UIState *s) {
     if ((strlen(s->b.custom_message) > 0) && (strlen(s->scene.alert_text1)==0)){
-      if ((!((bb_get_button_status(s,"msg") == 0) && (s->b.custom_message_status<=3))) && (s->vision_connected == true)) {
+      if (!(s->b.custom_message_status<=3) && (s->vision_connected == true)) {
         bb_ui_draw_vision_alert(s, ALERTSIZE_SMALL, s->b.custom_message_status,
                               s->b.custom_message,"");
       }

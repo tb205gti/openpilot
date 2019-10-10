@@ -205,8 +205,8 @@ class CarState(object):
                       [ACCMode.BUTTON_NAME,   ACCMode.BUTTON_ABREVIATION, ACCMode.labels()],
                       ["dsp",               "DSP",                      ["OP","MIN","OFF","GYRO"]],
                       ["",               "",                      [""]],
-                      ["msg",                 "MSG",                      [""]],
-                      ["sound",               "SND",                      [""]]]
+                      ["",                 "",                      [""]],
+                      ["",               "",                      [""]]]
     
     ### START OF MAIN CONFIG OPTIONS ###
     ### Do NOT modify here, modify in /data/bb_openpilot.cfg and reboot
@@ -523,7 +523,7 @@ class CarState(object):
       self.apFollowTimeInS =  1 + cp.vl["MCU_chassisControl"]["MCU_fcwSensitivity"] * 0.5
       self.keepEonOff = cp.vl["MCU_chassisControl"]["MCU_ldwEnable"] == 1
       self.alcaEnabled = cp.vl["MCU_chassisControl"]["MCU_pedalSafetyEnable"] == 1
-      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] == 1
+      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] != 1 #use the toggle inversed - always deactivated on new drives
 
     usu = cp.vl['MCU_gpsVehicleSpeed']["MCU_userSpeedOffsetUnits"]
     if usu == 1:

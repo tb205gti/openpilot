@@ -31,7 +31,7 @@ def calc_d_poly(l_poly, r_poly, p_poly, l_prob, r_prob, lane_width):
   path_from_right_lane = r_poly.copy()
   path_from_right_lane[3] += lane_width / 2.0
 
-  #lr_prob = l_prob * r_prob
+#  lr_prob = l_prob * r_prob
   lr_prob = l_prob + r_prob - l_prob * r_prob
   
   d_poly_lane = (l_prob * path_from_left_lane + r_prob * path_from_right_lane) / (l_prob + r_prob + 0.0001)
@@ -99,8 +99,8 @@ class LanePlanner(object):
            self.readings.pop(0)
 
 
-    # Don't exit dive, set r_prob lower if the lane goes too wide
-    if abs(self.l_poly[3] - self.r_poly[3]) > (self.lane_width + 0.4):
+    # Don't exit dive, set r_prob lower if the lane goes too wide (3.9 Meters+)
+    if abs(self.l_poly[3] - self.r_poly[3]) > (self.lane_width + 0.3):
        self.r_prob = self.r_prob / interp(self.l_prob, [0, 1], [1, 3])
 
     # ALCA integration

@@ -1,7 +1,7 @@
 #human steer override module
 import time
 
-MAX_TIME_BLINKER_ON = 300 # in 0.01 seconds
+MAX_TIME_BLINKER_ON = 175 # in 0.01 seconds
 TIME_REMEMBER_LAST_BLINKER = 70 # in 0.01 seconds
 
 def _current_time_millis():
@@ -53,7 +53,7 @@ class HSOController(object):
               steer_current=(CS.angle_steers)  # Formula to convert current steering angle to match apply_steer calculated number
               apply_steer = int(-actuators.steerAngle)
               angle = abs(apply_steer-steer_current)
-              if angle > 15.:
+              if angle > 10.:
                 self.frame_humanSteered = frame
         if enabled:
             if CS.enableHSO:

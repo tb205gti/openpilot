@@ -738,7 +738,8 @@ class CarController(object):
           self.curv0 = self.ALCA.laneChange_direction * self.laneWidth - self.curv0
         self.curv0 = clip(self.curv0, -3.5, 3.5)
       else:
-        if CS.enableLdw and (not CS.blinker_on) and (CS.v_ego > 15.6) and (turn_signal_needed == 0):
+#PKW: Raise LDW warning to 65km/h to prevent it from going of in the city
+        if CS.enableLdw and (not CS.blinker_on) and (CS.v_ego > 18.0) and (turn_signal_needed == 0):
           if pp.lProb > LDW_LANE_PROBAB:
             lLaneC0 = -pp.lPoly[3]
             if abs(lLaneC0) < LDW_WARNING_2:

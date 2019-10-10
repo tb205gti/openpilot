@@ -1680,7 +1680,7 @@ void handle_message(UIState *s, void *which) {
   cereal_read_Event(&eventd, eventp);
   double t = millis_since_boot();
 
-  int bts = bb_get_button_status(s,"sound");
+  int bts = 0; //bb_get_button_status(s,"sound");
   if (eventd.which == cereal_Event_controlsState) {
     struct cereal_ControlsState datad;
     cereal_read_ControlsState(&datad, eventd.controlsState);

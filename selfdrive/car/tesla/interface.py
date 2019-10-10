@@ -128,7 +128,7 @@ class CarInterface(object):
       ret.mass = mass_models
       ret.wheelbase = wheelbase_models
       ret.centerToFront = centerToFront_models
-      ret.steerRatio = 11.
+      ret.steerRatio = 12.
       # Kp and Ki for the lateral control for 0, 20, 40, 60 mph
       ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[1.20, 0.80, 0.60, 0.30], [0.16, 0.12, 0.08, 0.04]]
       ret.lateralTuning.pid.kf = 0.00006 # Initial test value TODO: investigate FF steer control for Model S?
@@ -146,9 +146,19 @@ class CarInterface(object):
         ret.longitudinalTuning.kiV = [0.01,0.01,0.01]
       elif teslaModel == "SP":
         ret.longitudinalTuning.kpBP = [0., 5., 35.]
-        ret.longitudinalTuning.kpV = [0.375, 0.325, 0.3]
         ret.longitudinalTuning.kiBP = [0., 5., 35.]
-        ret.longitudinalTuning.kiV = [0.009,0.008,0.007]
+
+# kp too high  = overshoots and undershoots
+# kp too low =  cannot get to target
+#        ret.longitudinalTuning.kpV = [0.375, 0.325, 0.3]
+
+        ret.longitudinalTuning.kpV = [0.375, 0.330, 0.325]
+
+# ki dampens overshoot /undershoot of kp
+# ki too high = it gets to target without oscillations, but it takes too long to target
+#        ret.longitudinalTuning.kiV = [0.009,0.008,0.007]
+        ret.longitudinalTuning.kiV = [0.00915,0.00825,0.00725]
+
       elif teslaModel == "SD":
         ret.longitudinalTuning.kpBP = [0., 5., 35.]
         ret.longitudinalTuning.kpV = [0.50, 0.45, 0.4]
