@@ -69,7 +69,7 @@ from selfdrive.loggerd.config import ROOT
 
 # comment out anything you don't want to run
 managed_processes = {
-  "tinklad":  "selfdrive.tinklad.tinklad",
+#  "tinklad":  "selfdrive.tinklad.tinklad",
   "thermald": "selfdrive.thermald",
   "uploader": "selfdrive.loggerd.uploader",
   "deleter": "selfdrive.loggerd.deleter",
@@ -111,7 +111,7 @@ interrupt_processes = []
 kill_processes = ['sensord', 'paramsd']
 
 persistent_processes = [
-  'tinklad',
+#  'tinklad',
   'thermald',
   'logmessaged',
   'logcatd',
@@ -332,7 +332,7 @@ def sendUserInfoToTinkla(params):
       gitBranch=gitBranch,
       gitHash=gitHash
   )
-  tinklaClient.setUserInfo(info)
+  #tinklaClient.setUserInfo(info)
 
 
 def manager_thread():
@@ -368,8 +368,9 @@ def manager_thread():
 
   # Tinkla interface
   global tinklaClient
-  tinklaClient = TinklaClient()
-  sendUserInfoToTinkla(params)
+  #PKA TODO re-enable  
+  #tinklaClient = TinklaClient()
+  #sendUserInfoToTinkla(params)
 
   while 1:
     msg = messaging.recv_sock(thermal_sock, wait=True)
@@ -381,7 +382,7 @@ def manager_thread():
       start_managed_process("uploader")
 
     # Attempt to send pending messages if there's any that queued while offline
-    tinklaClient.attemptToSendPendingMessages()
+    #tinklaClient.attemptToSendPendingMessages()
 
     if msg.thermal.freeSpace < 0.05:
       logger_dead = True

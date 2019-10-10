@@ -1,7 +1,4 @@
-#include "cereal/gen/c/ui.capnp.h"
-
-
-
+#include "./cereal/gen/c/ui.capnp.h"
 
 vec3 bb_car_space_to_full_frame(const  UIState *s, vec4 car_space_projective) {
   const UIScene *scene = &s->scene;

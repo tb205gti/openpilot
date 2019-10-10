@@ -207,13 +207,13 @@ class PCCController(object):
     if CS.pedal_interceptor_available and not CS.cstm_btns.get_button_status("pedal"):
       # pedal hardware, enable button
       CS.cstm_btns.set_button_status("pedal", 1)
-      print "enabling pedal"
+      print("enabling pedal")
     elif not CS.pedal_interceptor_available:
       if CS.cstm_btns.get_button_status("pedal"):
         # no pedal hardware, disable button
         CS.cstm_btns.set_button_status("pedal", 0)
-        print "disabling pedal"
-      print "Pedal unavailable."
+        print("disabling pedal")
+      print("Pedal unavailable.")
       return can_sends
     
     # check if we had error before
@@ -234,7 +234,7 @@ class PCCController(object):
       self.reset(0.)
       CS.UE.custom_alert_message(3, "PCC Disabled", 150, 4)
       CS.cstm_btns.set_button_status("pedal", 1)
-      print "brake pressed"
+      print("brake pressed")
 
     prev_enable_pedal_cruise = self.enable_pedal_cruise
     # process any stalk movement

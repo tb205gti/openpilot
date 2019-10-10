@@ -175,6 +175,10 @@ def thermald_thread():
   health_prev = None
   current_connectivity_alert = None
 
+  # Make sure charging is enabled
+  charging_disabled = False
+  os.system('echo "1" > /sys/class/power_supply/battery/charging_enabled')
+
   params = Params()
 
   while 1:

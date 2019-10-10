@@ -108,8 +108,8 @@ class CarInterface(object):
 
     ret.enableCamera = True
     ret.enableGasInterceptor = False #keep this False for now
-    print "ECU Camera Simulated: ", ret.enableCamera
-    print "ECU Gas Interceptor: ", ret.enableGasInterceptor
+    print("ECU Camera Simulated: ", ret.enableCamera)
+    print("ECU Gas Interceptor: ", ret.enableGasInterceptor)
 
     ret.enableCruise = not ret.enableGasInterceptor
 
@@ -441,7 +441,7 @@ class CarInterface(object):
 
       # do enable on both accel and decel buttons
       if b.type == "altButton3" and not b.pressed:
-        print "enabled pressed at", cur_time
+        print("enabled pressed at", cur_time)
         self.last_enable_pressed = cur_time
         enable_pressed = True
 
