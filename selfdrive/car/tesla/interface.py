@@ -7,7 +7,6 @@ from selfdrive.controls.lib.drive_helpers import create_event, EventTypes as ET,
 from selfdrive.controls.lib.vehicle_model import VehicleModel
 from selfdrive.car.tesla.carstate import CarState, get_can_parser, get_epas_parser, get_pedal_parser
 from selfdrive.car.tesla.values import CruiseButtons, CM, BP, AH, CAR,DBC
-from selfdrive.controls.lib.planner import _A_CRUISE_MAX_V_FOLLOWING
 from common.params import read_db
 from selfdrive.car import STD_CARGO_KG
 from selfdrive.car.tesla.readconfig import CarSettings
@@ -26,7 +25,7 @@ def tesla_compute_gb(accel, speed):
   return float(accel) / 3.
 
 
-class CarInterface(object):
+class CarInterface():
   def __init__(self, CP, CarController):
     self.CP = CP
 
@@ -91,7 +90,7 @@ class CarInterface(object):
     # accelOverride is more or less the max throttle allowed to pcm: usually set to a constant
     # unless aTargetMax is very high and then we scale with it; this help in quicker restart
 
-    return float(max(0.714, a_target / max(_A_CRUISE_MAX_V_FOLLOWING))) * min(speedLimiter, accelLimiter)
+    return float(max(max_accel, a_target / A_ACC_MAX)) * min(speedLimiter, accelLimiter)
 
   @staticmethod
   def get_params(candidate, fingerprint, vin="", is_panda_black=False):
@@ -115,8 +114,8 @@ class CarInterface(object):
 
     ret.enableCamera = True
     ret.enableGasInterceptor = False #keep this False for now
-    print("ECU Camera Simulated: ", ret.enableCamera)
-    print("ECU Gas Interceptor: ", ret.enableGasInterceptor)
+    print ("ECU Camera Simulated: ", ret.enableCamera)
+    print ("ECU Gas Interceptor: ", ret.enableGasInterceptor)
 
     ret.enableCruise = not ret.enableGasInterceptor
 
@@ -135,7 +134,7 @@ class CarInterface(object):
       ret.mass = mass_models
       ret.wheelbase = wheelbase_models
       ret.centerToFront = centerToFront_models
-      ret.steerRatio = 11.5
+      ret.steerRatio = 11.
       # Kp and Ki for the lateral control for 0, 20, 40, 60 mph
       ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[1.20, 0.80, 0.60, 0.30], [0.16, 0.12, 0.08, 0.04]]
       ret.lateralTuning.pid.kf = 0.00006 # Initial test value TODO: investigate FF steer control for Model S?
@@ -153,19 +152,9 @@ class CarInterface(object):
         ret.longitudinalTuning.kiV = [0.01,0.01,0.01]
       elif teslaModel == "SP":
         ret.longitudinalTuning.kpBP = [0., 5., 35.]
+        ret.longitudinalTuning.kpV = [0.375, 0.325, 0.325]
         ret.longitudinalTuning.kiBP = [0., 5., 35.]
-
-# kp too high  = overshoots and undershoots
-# kp too low =  cannot get to target
-#        ret.longitudinalTuning.kpV = [0.375, 0.325, 0.3]
-
-        ret.longitudinalTuning.kpV = [0.375, 0.330, 0.325]
-
-# ki dampens overshoot /undershoot of kp
-# ki too high = it gets to target without oscillations, but it takes too long to target
-#        ret.longitudinalTuning.kiV = [0.009,0.008,0.007]
         ret.longitudinalTuning.kiV = [0.00915,0.00825,0.00725]
-
       elif teslaModel == "SD":
         ret.longitudinalTuning.kpBP = [0., 5., 35.]
         ret.longitudinalTuning.kpV = [0.50, 0.45, 0.4]
@@ -227,7 +216,7 @@ class CarInterface(object):
     ret.openpilotLongitudinalControl = True
     ret.steerLimitAlert = False
     ret.startAccel = 0.5
-    ret.steerRateCost = 0.7
+    ret.steerRateCost = 1.0 
     ret.radarOffCan = not CarSettings().get_value("useTeslaRadar")
 
     return ret
@@ -448,7 +437,7 @@ class CarInterface(object):
 
       # do enable on both accel and decel buttons
       if b.type == "altButton3" and not b.pressed:
-        print("enabled pressed at", cur_time)
+        print ("enabled pressed at", cur_time)
         self.last_enable_pressed = cur_time
         enable_pressed = True
 
