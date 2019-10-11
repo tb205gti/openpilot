@@ -26,6 +26,17 @@ class ConfigFile(object):
       config.add_section(main_section)
       config.add_section(logging_section)
 
+
+      #spiner_text -> spinnerText
+      into.spinnerText, didUpdate = self.read_config_entry(
+        config, configr, prev_file_contents, section = main_section,
+        entry = 'spinner_text', entry_type = str,
+        default_value = '%d',
+        comment = 'The text that is shown for the spinner when spawning the managed services.'
+      )
+      file_changed |= didUpdate
+
+
       #user_handle -> userHandle
       into.userHandle, didUpdate = self.read_config_entry(
         config, configr, prev_file_contents, section = main_section,
@@ -405,6 +416,8 @@ class CarSettings(object):
   doAutoUpdate = None
   shouldLogProcessCommErrors = None
   shouldLogCanErrors = None
+  #PKW
+  spinnerText = None
 
   def __init__(self, optional_config_file_path = default_config_file_path):
     config_file = ConfigFile()
