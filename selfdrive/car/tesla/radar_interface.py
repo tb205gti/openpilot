@@ -1,11 +1,12 @@
-#!/usr/bin/env python
-from cereal import car,tesla
-import time
+#!/usr/bin/env python3.7
 import os
+import time
+from cereal import car, tesla
 from selfdrive.can.parser import CANParser
-from common.realtime import sec_since_boot
+from common.realtime import DT_RDR
 from selfdrive.services import service_list
 import selfdrive.messaging as messaging
+from selfdrive.car.interfaces import RadarInterfaceBase
 from selfdrive.car.tesla.readconfig import CarSettings
 from selfdrive.tinklad.tinkla_interface import TinklaClient
 
@@ -30,7 +31,7 @@ def _create_radard_can_parser():
   msg_a_n = len(RADAR_A_MSGS)
   msg_b_n = len(RADAR_B_MSGS)
 
-  signals = zip(['LongDist'] * msg_a_n +  ['LatDist'] * msg_a_n +
+  signals = list(zip(['LongDist'] * msg_a_n +  ['LatDist'] * msg_a_n +
                 ['LongSpeed'] * msg_a_n + ['LongAccel'] * msg_a_n + 
                 ['Valid'] * msg_a_n + ['Tracked'] * msg_a_n + 
                 ['Meas'] * msg_a_n + ['ProbExist'] * msg_a_n + 
@@ -42,14 +43,14 @@ def _create_radard_can_parser():
                 [255.] * msg_a_n + [0.] * msg_a_n + [0.] * msg_a_n + [0.] * msg_a_n + 
                 [0] * msg_a_n + [0] * msg_a_n + [0] * msg_a_n + [0.] * msg_a_n +
                 [0] * msg_a_n + [0.] * msg_a_n + [0.] * msg_b_n + [0] * msg_b_n +
-                [0] * msg_b_n + [0.] * msg_b_n + [0.] * msg_b_n +[0.] * msg_b_n + [0]* msg_b_n)
+                [0] * msg_b_n + [0.] * msg_b_n + [0.] * msg_b_n +[0.] * msg_b_n + [0]* msg_b_n))
 
-  checks = zip(RADAR_A_MSGS + RADAR_B_MSGS, [60]*(msg_a_n + msg_b_n))
+  checks = list(zip(RADAR_A_MSGS + RADAR_B_MSGS, [60]*(msg_a_n + msg_b_n)))
 
-  return CANParser(os.path.splitext(dbc_f)[0], signals, checks, 1)
+  return CANParser(os.path.splitext(dbc_f)[0].encode('utf8'), signals, checks, 1)
 
 
-class RadarInterface(object):
+class RadarInterface(RadarInterfaceBase):
 
   tinklaClient = TinklaClient()
 
@@ -57,7 +58,7 @@ class RadarInterface(object):
     # radar
     self.pts = {}
     self.extPts = {}
-    self.delay = 0.1
+    self.delay = int(0.1 / DT_RDR)
     self.useTeslaRadar = CarSettings().get_value("useTeslaRadar")
     self.TRACK_LEFT_LANE = True
     self.TRACK_RIGHT_LANE = True
@@ -67,7 +68,6 @@ class RadarInterface(object):
       self.pts = {}
       self.extPts = {}
       self.valid_cnt = {key: 0 for key in RADAR_A_MSGS}
-      self.delay = 0.1  # Delay of radar
       self.rcp = _create_radard_can_parser()
       self.logcan = messaging.sub_sock(service_list['can'].port)
       self.radarOffset = CarSettings().get_value("radarOffset")
@@ -82,9 +82,6 @@ class RadarInterface(object):
     if not self.useTeslaRadar:
       time.sleep(0.05)
       return car.RadarData.new_message(),self.extPts.values()
-
-
-    tm = int(sec_since_boot() * 1e9)
     if can_strings != None:
       vls = self.rcp.update_strings(can_strings)
       self.updated_messages.update(vls)
@@ -168,7 +165,7 @@ class RadarInterface(object):
           else:
             self.extPts[message].objectClass = 1
 
-    ret.points = self.pts.values()
+    ret.points = list(self.pts.values())
     errors = []
     if not self.rcp.can_valid:
       errors.append("canError")

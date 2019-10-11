@@ -480,7 +480,7 @@ def manager_prepare(spinner=None):
 
   for i, p in enumerate(managed_processes):
     if spinner is not None:
-      spinner.update("%d" % (100.0 * (i + 1) / len(managed_processes),))
+      spinner.update("Loading DashCam %d %%" % (100.0 * (i + 1) / len(managed_processes),))
     prepare_managed_process(p)
 
 def uninstall():
