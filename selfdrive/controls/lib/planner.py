@@ -30,10 +30,13 @@ _A_CRUISE_MIN_BP = [   0., 5.,  10., 20.,  40.]
 # make sure these accelerations are smaller than mpc limits
 #BB editing for TESLA only
 #_A_CRUISE_MAX_V = [2.7, 2., 1.9, 1.75, 1.5]
-_A_CRUISE_MAX_V = [2.7, 2.7, 2.0, 2.0, 2.0]
+_A_CRUISE_MAX_V = [2.0, 1.6, 1.0, 0.7]
+#_A_CRUISE_MAX_V = [2.7, 2.7, 2.0, 2.0, 2.0]
 #_A_CRUISE_MAX_V_FOLLOWING = [2.7, 2., 1.9, 1.75, 1.5]
-_A_CRUISE_MAX_V_FOLLOWING = [2.7, 2.7, 2.7, 2.7, 2.7]
-_A_CRUISE_MAX_BP = [0.,  5., 10., 20., 40.]
+_A_CRUISE_MAX_V_FOLLOWING = [2.7, 2.7, 2.7, 2.7]
+
+_A_CRUISE_MAX_BP = [0.,  6.4, 22.5, 40.] # 0, 23, 81, 144
+#_A_CRUISE_MAX_BP = [0.,  5., 10., 20., 40.]
 
 # Lookup table for turns
 _A_TOTAL_MAX_V = [1.5, 1.9, 2.5]
