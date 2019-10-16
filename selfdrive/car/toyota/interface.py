@@ -59,6 +59,10 @@ class CarInterface(CarInterfaceBase):
       ret.lateralTuning.init('pid')
       ret.lateralTuning.pid.kiBP, ret.lateralTuning.pid.kpBP = [[0.], [0.]]
 
+    ret.steerReactance = 1.0
+    ret.steerInductance = 1.0
+    ret.steerResistance = 1.0
+
     if candidate == CAR.PRIUS:
       stop_and_go = True
       ret.safetyParam = 66  # see conversion factor for STEER_TORQUE_EPS in dbc file
@@ -326,8 +330,12 @@ class CarInterface(CarInterfaceBase):
 
     # steering wheel
     ret.steeringAngle = self.CS.angle_steers
-    ret.steeringRate = self.CS.angle_steers_rate
 
+    if self.CP.carFingerprint in [CAR.RAV4H, CAR.RAV4, CAR.RAV4H, CAR.COROLLA]:
+      ret.steeringRate = self.CS.angle_steers_rate
+    else:
+      ret.steeringRate = 0
+      
     ret.steeringTorque = self.CS.steer_torque_driver
     ret.steeringTorqueEps = self.CS.steer_torque_motor
     ret.steeringPressed = self.CS.steer_override

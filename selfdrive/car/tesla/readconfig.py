@@ -2,13 +2,13 @@ import configparser
 
 default_config_file_path = '/data/bb_openpilot.cfg'
 
-class ConfigFile(object):
+class ConfigFile():
   config_file_r = 'r'
-  config_file_w = 'wb'
+  config_file_w = 'w'
 
   ### Do NOT modify here, modify in /data/bb_openpilot.cfg and reboot
   def read(self, into, config_path):
-      configr = configparser.ConfigParser()
+      configr = configparser.RawConfigParser()
       file_changed = False
 
       try:
@@ -25,17 +25,6 @@ class ConfigFile(object):
       config = configparser.RawConfigParser(allow_no_value=True)
       config.add_section(main_section)
       config.add_section(logging_section)
-
-
-      #spiner_text -> spinnerText
-      into.spinnerText, didUpdate = self.read_config_entry(
-        config, configr, prev_file_contents, section = main_section,
-        entry = 'spinner_text', entry_type = str,
-        default_value = '%d',
-        comment = 'The text that is shown for the spinner when spawning the managed services.'
-      )
-      file_changed |= didUpdate
-
 
       #user_handle -> userHandle
       into.userHandle, didUpdate = self.read_config_entry(
@@ -328,6 +317,15 @@ class ConfigFile(object):
         comment = 'Set this setting to False if you do not want OP to autoupdate every time you reboot and there is a change on the repo'
       )
       file_changed |= didUpdate
+      
+      #spiner_text -> spinnerText
+      into.spinnerText, didUpdate = self.read_config_entry(
+        config, configr, prev_file_contents, section = main_section,
+        entry = 'spinner_text', entry_type = str,
+        default_value = '%d',
+        comment = 'The text that is shown for the spinner when spawning the managed services.'
+      )
+      file_changed |= didUpdate
 
       into.shouldLogCanErrors, didUpdate = self.read_config_entry(
         config, configr, prev_file_contents, section = logging_section,
@@ -348,7 +346,7 @@ class ConfigFile(object):
       if file_changed:
         did_write = True
         with open(config_path, self.config_file_w) as configfile:
-          config.encode("utf-8").write(configfile)
+          config.write(configfile)
       else:
         did_write = False
 
@@ -380,7 +378,7 @@ class ConfigFile(object):
       updated = (prev_file_contents.find(new_comment) == -1)
       return updated
 
-class CarSettings(object):
+class CarSettings():
 
   userHandle = None
   forceFingerprintTesla = None
@@ -414,10 +412,9 @@ class CarSettings(object):
   radarPosition = None
   fix1916 = None
   doAutoUpdate = None
+  spinnerText = None
   shouldLogProcessCommErrors = None
   shouldLogCanErrors = None
-  #PKW
-  spinnerText = None
 
   def __init__(self, optional_config_file_path = default_config_file_path):
     config_file = ConfigFile()

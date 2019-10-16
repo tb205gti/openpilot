@@ -30,11 +30,13 @@ from selfdrive.controls.lib.driver_monitor import DriverStatus, MAX_TERMINAL_ALE
 from selfdrive.controls.lib.planner import LON_MPC_STEP
 from selfdrive.controls.lib.gps_helpers import is_rhd_region
 from selfdrive.locationd.calibration_helpers import Calibration, Filter
+from selfdrive.tinklad.tinkla_interface import TinklaClient
+from selfdrive.car.tesla.readconfig import CarSettings
+
 
 ThermalStatus = log.ThermalData.ThermalStatus
 State = log.ControlsState.OpenpilotState
 HwType = log.HealthData.HwType
-
 
 def isActive(state):
   """Check if the actuators are enabled"""
@@ -220,7 +222,7 @@ def state_transition(frame, CS, CP, state, events, soft_disable_timer, v_cruise_
 
 
 def state_control(frame, rcv_frame, plan, path_plan, CS, CP, state, events, v_cruise_kph, v_cruise_kph_last,
-                  AM, rk, driver_status, LaC, LoC, read_only, is_metric, cal_perc):
+                  AM, rk, driver_status, LaC, LoC, read_only, is_metric, cal_perc, dm_enabled):
   """Given the state, this function returns an actuators packet"""
 
   actuators = car.CarControl.Actuators.new_message()
@@ -231,7 +233,8 @@ def state_control(frame, rcv_frame, plan, path_plan, CS, CP, state, events, v_cr
   # check if user has interacted with the car
   driver_engaged = len(CS.buttonEvents) > 0 or \
                    v_cruise_kph != v_cruise_kph_last or \
-                   CS.steeringPressed
+                   CS.steeringPressed or \
+                   not dm_enabled
 
   # add eventual driver distracted events
   events = driver_status.update(events, driver_engaged, isActive(state), CS.standstill)
@@ -418,6 +421,13 @@ def data_send(sm, pm, CS, CI, CP, VM, state, events, actuators, v_cruise_kph, rk
 
   return CC, events_bytes
 
+def logAllAliveAndValidInfoToTinklad(sm, tinklaClient):
+  areAllAlive,aliveProcessName,aliveCount = sm.all_alive_with_info()
+  areAllValid, validProcessName, validCount = sm.all_valid_with_info()
+  if not areAllAlive:
+    tinklaClient.logProcessCommErrorEvent(source="carcontroller", processName=aliveProcessName, count=aliveCount, eventType="Not Alive")
+  else:
+    tinklaClient.logProcessCommErrorEvent(source="carcontroller", processName=validProcessName, count=validCount, eventType="Not Valid")
 
 def controlsd_thread(sm=None, pm=None, can_sock=None):
   gc.disable()
@@ -427,6 +437,7 @@ def controlsd_thread(sm=None, pm=None, can_sock=None):
 
   params = Params()
 
+  tinklaClient = TinklaClient()
   is_metric = params.get("IsMetric", encoding='utf8') == "1"
   passive = params.get("Passive", encoding='utf8') == "1"
   openpilot_enabled_toggle = params.get("OpenpilotEnabledToggle", encoding='utf8') == "1"
@@ -515,6 +526,8 @@ def controlsd_thread(sm=None, pm=None, can_sock=None):
 
   prof = Profiler(False)  # off by default
 
+  dm_enabled = CarSettings().get_value("enableDriverMonitor")
+
   while True:
     start_time = sec_since_boot()
     prof.checkpoint("Ratekeeper", ignore=True)
@@ -528,6 +541,7 @@ def controlsd_thread(sm=None, pm=None, can_sock=None):
     # Create alerts
     if not sm.all_alive_and_valid():
       events.append(create_event('commIssue', [ET.NO_ENTRY, ET.SOFT_DISABLE]))
+      logAllAliveAndValidInfoToTinklad(sm=sm, tinklaClient=tinklaClient)
     if not sm['pathPlan'].mpcSolutionValid:
       events.append(create_event('plannerError', [ET.NO_ENTRY, ET.IMMEDIATE_DISABLE]))
     if not sm['pathPlan'].sensorValid:
@@ -542,6 +556,7 @@ def controlsd_thread(sm=None, pm=None, can_sock=None):
       events.append(create_event('radarCanError', [ET.NO_ENTRY, ET.SOFT_DISABLE]))
     if not CS.canValid:
       events.append(create_event('canError', [ET.NO_ENTRY, ET.IMMEDIATE_DISABLE]))
+      tinklaClient.logCANErrorEvent(source="carcontroller", canMessage=0, additionalInformation="Invalid CAN")
     if not sounds_available:
       events.append(create_event('soundsUnavailable', [ET.NO_ENTRY, ET.PERMANENT]))
     if internet_needed:
@@ -560,8 +575,9 @@ def controlsd_thread(sm=None, pm=None, can_sock=None):
     # Compute actuators (runs PID loops and lateral MPC)
     actuators, v_cruise_kph, driver_status, v_acc, a_acc, lac_log = \
       state_control(sm.frame, sm.rcv_frame, sm['plan'], sm['pathPlan'], CS, CP, state, events, v_cruise_kph, v_cruise_kph_last, AM, rk,
-                    driver_status, LaC, LoC, read_only, is_metric, cal_perc)
+                    driver_status, LaC, LoC, read_only, is_metric, cal_perc, dm_enabled)
 
+    rk.keep_time(1. / 10000)  # Run at 100Hz
     prof.checkpoint("State Control")
 
     # Publish data

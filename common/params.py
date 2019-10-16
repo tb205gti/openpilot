@@ -43,6 +43,7 @@ class TxType(Enum):
   PERSISTENT = 1
   CLEAR_ON_MANAGER_START = 2
   CLEAR_ON_PANDA_DISCONNECT = 3
+  CLEAR_ON_CAR_START = 4
 
 
 class UnknownKeyName(Exception):
@@ -53,8 +54,8 @@ keys = {
   "AccessToken": [TxType.PERSISTENT],
   "AthenadPid": [TxType.PERSISTENT],
   "CalibrationParams": [TxType.PERSISTENT],
-  "CarParams": [TxType.CLEAR_ON_MANAGER_START, TxType.CLEAR_ON_PANDA_DISCONNECT],
-  "CarVin": [TxType.CLEAR_ON_MANAGER_START, TxType.CLEAR_ON_PANDA_DISCONNECT],
+  "CarParams": [TxType.CLEAR_ON_CAR_START], #[TxType.CLEAR_ON_MANAGER_START, TxType.CLEAR_ON_PANDA_DISCONNECT], #[TxType.CLEAR_ON_CAR_START],
+  "CarVin": [TxType.CLEAR_ON_MANAGER_START, TxType.CLEAR_ON_PANDA_DISCONNECT], #[TxType.PERSISTENT], #[TxType.CLEAR_ON_MANAGER_START, TxType.CLEAR_ON_PANDA_DISCONNECT],
   "CompletedTrainingVersion": [TxType.PERSISTENT],
   "ControlsParams": [TxType.PERSISTENT],
   "DoUninstall": [TxType.CLEAR_ON_MANAGER_START],
@@ -335,6 +336,9 @@ class Params():
 
   def panda_disconnect(self):
     self._clear_keys_with_type(TxType.CLEAR_ON_PANDA_DISCONNECT)
+  
+  def car_start(self):
+    self._clear_keys_with_type(TxType.CLEAR_ON_CAR_START)
 
   def delete(self, key):
     with self.transaction(write=True) as txn:

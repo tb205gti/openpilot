@@ -40,7 +40,7 @@ TORQUE_LEVEL_ACC = 0.
 TORQUE_LEVEL_DECEL = -30.
 
 MIN_PCC_V_KPH = 0. #
-MAX_PCC_V_KPH = 170.
+MAX_PCC_V_KPH = 270.
 
 ANGLE_STOP_ACCEL = 10. #this should be speed dependent
 
@@ -49,7 +49,7 @@ MIN_CAN_SPEED = 0.3  #TODO: parametrize this in car interface
 # Pull the cruise stalk twice in this many ms for a 'double pull'
 STALK_DOUBLE_PULL_MS = 750
 
-class Mode(object):
+class Mode():
   label = None
 
 class OpMode(Mode):
@@ -58,7 +58,7 @@ class OpMode(Mode):
 class FollowMode(Mode):
   label = 'FOLLOW'
   
-class PCCModes(object):
+class PCCModes():
   _all_modes = [OpMode(), FollowMode()]
   _mode_map = {mode.label : mode for mode in _all_modes}
   BUTTON_NAME = 'pedal'
@@ -109,7 +109,7 @@ def max_v_in_mapped_curve_ms(map_data, pedal_set_speed_kph):
 
 
 
-class PCCState(object):
+class PCCState():
   # Possible state of the ACC system, following the DI_cruiseState naming
   # scheme.
   OFF = 0         # Disabled by UI.
@@ -123,7 +123,7 @@ def _current_time_millis():
 
 
 #this is for the pedal cruise control
-class PCCController(object):
+class PCCController():
   def __init__(self,carcontroller):
     self.CC = carcontroller
     self.human_cruise_action_time = 0
@@ -180,9 +180,9 @@ class PCCController(object):
 
   def max_v_by_speed_limit(self,pedal_set_speed_ms ,speed_limit_ms, CS):
     # if more than 10 kph / 2.78 ms, consider we have speed limit
-#    if (CS.maxdrivespeed > 0)  and CS.useTeslaMapData and (CS.mapAwareSpeed or (CS.baseMapSpeedLimitMPS <2.7)):
-# if the difference is more than 20 MPH, ignore the speed limit as it is probably wrong (an overpass' speed instead of the current road)
-    if ((CS.maxdrivespeed > 0) and CS.useTeslaMapData and (CS.mapAwareSpeed or (CS.baseMapSpeedLimitMPS <2.7)) and ((pedal_set_speed_ms-speed_limit_ms) < 46.3)):
+    # if the difference is more than 20 MPH, ignore the speed limit as it is probably wrong (an overpass' speed instead of the current road)
+    if (CS.maxdrivespeed > 0)  and CS.useTeslaMapData and (CS.mapAwareSpeed or (CS.baseMapSpeedLimitMPS <2.7)):
+#    if ((CS.maxdrivespeed > 0) and CS.useTeslaMapData and (CS.mapAwareSpeed or (CS.baseMapSpeedLimitMPS <2.7)) and ((pedal_set_speed_ms-speed_limit_ms) < 46.3)):
       #do we know the based speed limit?
       sl1 = 0.
       if CS.baseMapSpeedLimitMPS >= 2.7:
@@ -207,13 +207,13 @@ class PCCController(object):
     if CS.pedal_interceptor_available and not CS.cstm_btns.get_button_status("pedal"):
       # pedal hardware, enable button
       CS.cstm_btns.set_button_status("pedal", 1)
-      print("enabling pedal")
+      print ("enabling pedal")
     elif not CS.pedal_interceptor_available:
       if CS.cstm_btns.get_button_status("pedal"):
         # no pedal hardware, disable button
         CS.cstm_btns.set_button_status("pedal", 0)
-        print("disabling pedal")
-      print("Pedal unavailable.")
+        print ("disabling pedal")
+      print ("Pedal unavailable.")
       return can_sends
     
     # check if we had error before
@@ -234,7 +234,7 @@ class PCCController(object):
       self.reset(0.)
       CS.UE.custom_alert_message(3, "PCC Disabled", 150, 4)
       CS.cstm_btns.set_button_status("pedal", 1)
-      print("brake pressed")
+      print ("brake pressed")
 
     prev_enable_pedal_cruise = self.enable_pedal_cruise
     # process any stalk movement
@@ -329,9 +329,9 @@ class PCCController(object):
         and self.prev_tesla_accel > 0.):
       self.PedalForZeroTorque = self.prev_tesla_accel
       self.lastTorqueForPedalForZeroTorque = CS.torqueLevel
-      #print "Detected new Pedal For Zero Torque at %s" % (self.PedalForZeroTorque)
-      #print "Torque level at detection %s" % (CS.torqueLevel)
-      #print "Speed level at detection %s" % (CS.v_ego * CV.MS_TO_MPH)
+      #print ("Detected new Pedal For Zero Torque at %s" % (self.PedalForZeroTorque))
+      #print ("Torque level at detection %s" % (CS.torqueLevel))
+      #print ("Speed level at detection %s" % (CS.v_ego * CV.MS_TO_MPH))
 
     if speed_limit_valid and set_speed_limit_active and (speed_limit_ms > 2.7):
       self.speed_limit_kph = (speed_limit_ms +  speed_limit_offset) * CV.MS_TO_KPH
@@ -365,7 +365,7 @@ class PCCController(object):
 
     v_ego = CS.v_ego
     following = self.lead_1.status and self.lead_1.dRel < MAX_RADAR_DISTANCE and self.lead_1.vLeadK > v_ego and self.lead_1.aLeadK > 0.0
-    accel_limits = [float(x) for x in calc_cruise_accel_limits(v_ego, following)]
+    accel_limits = [float(x) for x in calc_cruise_accel_limits(v_ego)]
     accel_limits[1] *= _accel_limit_multiplier(CS, self.lead_1)
     accel_limits[0] = _decel_limit(accel_limits[0], CS.v_ego, self.lead_1, CS, self.pedal_speed_kph)
     jerk_limits = [min(-0.1, accel_limits[0]/2.), max(0.1, accel_limits[1]/2.)]  # TODO: make a separate lookup for jerk tuning
@@ -431,10 +431,10 @@ class PCCController(object):
         t_go, t_brake = self.LoC.update(self.enable_pedal_cruise, CS.v_ego, CS.brake_pressed != 0, CS.standstill, False, 
                     self.v_cruise , vTarget, self.vTargetFuture, feedforward, CS.CP)
         output_gb = t_go - t_brake
-        #print "Output GB Follow:", output_gb
+        #print ("Output GB Follow:", output_gb)
       else:
         self.LoC.reset(v_pid=CS.v_ego)
-        #print "PID reset"
+        #print ("PID reset")
         output_gb = 0.
         starting = self.LoC.long_control_state == LongCtrlState.starting
         a_ego = min(CS.a_ego, 0.0)
@@ -656,7 +656,7 @@ def _sec_til_collision(lead, CS):
 def _interp_map(val, val_map):
   """Helper to call interp with an OrderedDict for the mapping. I find
   this easier to read than interp, which takes two arrays."""
-  return interp(val, val_map.keys(), val_map.values())
+  return interp(val, list(val_map.keys()), list(val_map.values()))
   
 def _accel_limit_multiplier(CS, lead):
   """Limits acceleration in the presence of a lead car. The further the lead car
@@ -671,10 +671,10 @@ def _accel_limit_multiplier(CS, lead):
   if CS.teslaModel in ["SP","SPD"]:
       accel_by_speed = OrderedDict([
         # (speed m/s, decel)
-        (0.,  0.6),  #   0 kmh
-        (10., 0.75),  #  35 kmh
-        (20., 0.625),  #  72 kmh
-        (30., 0.775)]) # 107 kmh
+        (0.,  0.95),  #   0 kmh
+        (10., 0.95),  #  35 kmh
+        (20., 0.925),  #  72 kmh
+        (30., 0.875)]) # 107 kmh
   accel_mult = _interp_map(CS.v_ego, accel_by_speed)
   if _is_present(lead):
     safe_dist_m = _safe_distance_m(CS.v_ego,CS)

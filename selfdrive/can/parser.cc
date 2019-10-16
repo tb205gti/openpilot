@@ -129,7 +129,12 @@ struct MessageState {
         tmp -= (tmp >> (sig.b2-1)) ? (1ULL << sig.b2) : 0; //signed
       }
 
-      DEBUG("parse %X %s -> %lld\n", address, sig.name, tmp);
+      // Testing both little and big endian signals (Tesla messages)
+      //if ( (address == 0x318) || (address == 0x118)) {
+      //  INFO("parse %X %s -> %f, dat -> %lX\n", address, sig.name, tmp * sig.factor + sig.offset, dat);
+      //}
+
+			DEBUG("parse %X %s -> %lld\n", address, sig.name, tmp);
 
       if (sig.type == SignalType::HONDA_CHECKSUM) {
         if (honda_checksum(address, dat, size) != tmp) {
@@ -349,6 +354,7 @@ class CANParser {
 
   int update(uint64_t sec, bool wait) {
     int err;
+    int frame_count;
     int result = 0;
 
     // recv from can
@@ -370,7 +376,7 @@ class CANParser {
         err = zmq_msg_recv(&msg, subscriber, ZMQ_DONTWAIT);
       }
       if (err < 0) break;
-
+      frame_count++;
       // format for board, make copy due to alignment issues, will be freed on out of scope
       auto amsg = kj::heapArray<capnp::word>((zmq_msg_size(&msg) / sizeof(capnp::word)) + 1);
       memcpy(amsg.begin(), zmq_msg_data(&msg), zmq_msg_size(&msg));

@@ -195,7 +195,7 @@ def get_pedal_parser(CP):
   signals, checks = get_pedal_can_signals(CP)
   return CANParser(DBC[CP.carFingerprint]['pt']+"_pedal", signals, checks, 2)
 
-class CarState(object):
+class CarState():
   def __init__(self, CP):
     self.speed_control_enabled = 0
     self.CL_MIN_V = 8.9
@@ -206,7 +206,7 @@ class CarState(object):
                       ["dsp",               "DSP",                      ["OP","MIN","OFF","GYRO"]],
                       ["",               "",                      [""]],
                       ["",                 "",                      [""]],
-                      ["",               "",                      [""]]]
+                      ["sound",               "SND",                      [""]]]
     
     ### START OF MAIN CONFIG OPTIONS ###
     ### Do NOT modify here, modify in /data/bb_openpilot.cfg and reboot
@@ -240,7 +240,8 @@ class CarState(object):
     self.radarEpasType = 0
     self.fix1916 = False
     self.forceFingerprintTesla = False
-    self.eonToFront = 0.9
+    self.eonToFront = 0.1
+    self.spinnerText = ""
     #read config file
     read_config_file(self)
     ### END OF MAIN CONFIG OPTIONS ###
@@ -523,7 +524,8 @@ class CarState(object):
       self.apFollowTimeInS =  1 + cp.vl["MCU_chassisControl"]["MCU_fcwSensitivity"] * 0.5
       self.keepEonOff = cp.vl["MCU_chassisControl"]["MCU_ldwEnable"] == 1
       self.alcaEnabled = cp.vl["MCU_chassisControl"]["MCU_pedalSafetyEnable"] == 1
-      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] != 1 #use the toggle inversed - always deactivated on new drives
+      # We invert it - so I do not have to de-select it every time O go for a drive
+      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] != 1
 
     usu = cp.vl['MCU_gpsVehicleSpeed']["MCU_userSpeedOffsetUnits"]
     if usu == 1:
@@ -670,7 +672,7 @@ class CarState(object):
 # carstate standalone tester
 if __name__ == '__main__':
 
-  class CarParams(object):
+  class CarParams():
     def __init__(self):
       self.carFingerprint = "TESLA MODEL S"
       self.enableCruise = 0

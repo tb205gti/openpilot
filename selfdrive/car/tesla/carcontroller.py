@@ -78,7 +78,7 @@ HUDData = namedtuple("HUDData",
 
 
 
-class CarController(object):
+class CarController():
   def __init__(self, dbc_name):
     self.alcaStateData = None
     self.icLeadsData = None
@@ -303,7 +303,7 @@ class CarController(object):
                   0xc1, hud_lanes, int(snd_beep), snd_chime, fcw_display, acc_alert, steer_required)
  
     if not all(isinstance(x, int) and 0 <= x < 256 for x in hud):
-      print("INVALID HUD", hud)
+      print ("INVALID HUD", hud)
       hud = HUDData(0xc6, 255, 64, 0xc0, 209, 0x40, 0, 0, 0, 0)
 
     # **** process the car messages ****
@@ -738,8 +738,7 @@ class CarController(object):
           self.curv0 = self.ALCA.laneChange_direction * self.laneWidth - self.curv0
         self.curv0 = clip(self.curv0, -3.5, 3.5)
       else:
-#PKW: Raise LDW warning to 65km/h to prevent it from going of in the city
-        if CS.enableLdw and (not CS.blinker_on) and (CS.v_ego > 18.0) and (turn_signal_needed == 0):
+        if CS.enableLdw and (not CS.blinker_on) and (CS.v_ego > 21) and (turn_signal_needed == 0):
           if pp.lProb > LDW_LANE_PROBAB:
             lLaneC0 = -pp.lPoly[3]
             if abs(lLaneC0) < LDW_WARNING_2:

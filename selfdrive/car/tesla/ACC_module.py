@@ -8,7 +8,7 @@ import zmq
 from selfdrive.car.tesla.movingaverage import MovingAverage
  
 
-class ACCState(object):
+class ACCState():
   # Possible states of the ACC system, following the DI_cruiseState naming
   # scheme.
   OFF = 0         # Disabled by UI.
@@ -16,14 +16,14 @@ class ACCState(object):
   ENABLED = 2     # Engaged.
   NOT_READY = 9   # Not ready to be engaged due to the state of the car.
   
-class _Mode(object):
+class _Mode():
   def __init__(self, label, autoresume, state):
     self.label = label
     self.autoresume = autoresume
     self.state = state
     self.next = None
   
-class ACCMode(object):
+class ACCMode():
   # Possible ACC modes, controlling how ACC behaves.
   # This is separate from ACC state. For example, you could
   # have ACC in "Autoresume" mode in "Standby" state.
@@ -52,7 +52,7 @@ def _current_time_millis():
   return int(round(time.time() * 1000))
 
 
-class ACCController(object):
+class ACCController():
   
   # Tesla cruise only functions above 17 MPH
   MIN_CRUISE_SPEED_MS = 17.1 * CV.MPH_TO_MS
@@ -352,12 +352,11 @@ class ACCController(object):
       ratio = 0
       if safe_dist_m > 0:
         ratio = (lead_dist_m / safe_dist_m) * 100
-      #PKA TODO: Fix it
-      #print("Ratio: {0:.1f}%  lead: {1:.1f}m  avail: {2:.1f}kph  vRel: {3:.1f}kph  Angle: {4:.1f}deg".format(
-      #  ratio, lead_dist_m, available_speed_kph, lead_car.vRel * CV.MS_TO_KPH, CS.angle_steers))
+      print ("Ratio: {0:.1f}%  lead: {1:.1f}m  avail: {2:.1f}kph  vRel: {3:.1f}kph  Angle: {4:.1f}deg".format(
+        ratio, lead_dist_m, available_speed_kph, lead_car.vRel * CV.MS_TO_KPH, CS.angle_steers))
       self.last_update_time = current_time_ms
       if msg != None:
-        print("ACC: " + msg)
+        print ("ACC: " + msg)
     return button
     
   def _should_autoengage_cc(self, CS, lead_car=None):
@@ -394,9 +393,9 @@ class ACCController(object):
     
   def _seconds_to_collision(self, CS, lead_car):
     if not lead_car or not lead_car.dRel:
-      return sys.maxint
+      return sys.maxsize
     elif lead_car.vRel >= 0:
-      return sys.maxint
+      return sys.maxsize
     return abs(float(lead_car.dRel) / lead_car.vRel)
     
   def _get_cc_units_kph(self, is_imperial_units):

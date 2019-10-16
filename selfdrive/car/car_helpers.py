@@ -119,10 +119,10 @@ def fingerprint(logcan, sendcan, has_relay):
         if frame > frame_fingerprint:
           # fingerprint done
           car_fingerprint = candidate_cars[b][0]
-
-
+    
+    
     if (car_fingerprint is None) and CarSettings().forceFingerprintTesla:
-          print("Fingerprinting Failed: Returning Tesla (based on branch)")
+          print ("Fingerprinting Failed: Returning Tesla (based on branch)")
           car_fingerprint = "TESLA MODEL S"
           vin = "TESLAFAKEVIN12345"
 
@@ -138,7 +138,7 @@ def fingerprint(logcan, sendcan, has_relay):
   return car_fingerprint, finger, vin
 
 
-def get_car(logcan, sendcan, has_relay=False):
+def get_car(logcan, sendcan, has_relay = False):
   if CarSettings().forceFingerprintTesla:
     candidate="TESLA MODEL S"
     fingerprints=["","",""]

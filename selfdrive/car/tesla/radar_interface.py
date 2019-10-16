@@ -168,13 +168,13 @@ class RadarInterface(RadarInterfaceBase):
     ret.points = list(self.pts.values())
     errors = []
     if not self.rcp.can_valid:
-      errors.append("canError")
+#      errors.append("canError")
       self.tinklaClient.logCANErrorEvent(source="radar_interface", canMessage=0, additionalInformation="Invalid CAN Count")
       self.canErrorCounter += 1
     else:
       self.canErrorCounter = 0
     #BB: Only trigger canError for 3 consecutive errors
-    if self.canErrorCounter > 2:
+    if self.canErrorCounter > 9:
       ret.errors = errors
     else:
       ret.errors = []

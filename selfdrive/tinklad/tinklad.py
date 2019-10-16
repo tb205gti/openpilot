@@ -164,6 +164,7 @@ class TinklaServer():
         context = zmq.Context()
         
         while True:
+            tmp = sock.recv_multipart()
             data = b''.join(sock.recv_multipart())
             tinklaInterface = cereal.tinkla.Interface.from_bytes(data)
             if tinklaInterface.version != cereal.tinkla.interfaceVersion:

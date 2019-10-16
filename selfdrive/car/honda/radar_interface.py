@@ -23,9 +23,9 @@ class RadarInterface(RadarInterfaceBase):
   def __init__(self, CP):
     # radar
     self.pts = {}
-    self.track_id = 0
-    self.radar_fault = False
-    self.radar_wrong_config = False
+    self.delay = 0.1
+    self.TRACK_LEFT_LANE = False
+    self.TRACK_RIGHT_LANE = False
     self.radar_off_can = CP.radarOffCan
 
     self.delay = int(0.1 / DT_RDR)   # 0.1s delay of radar

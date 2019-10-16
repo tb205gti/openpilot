@@ -181,7 +181,7 @@ ALERTS = [
   Alert(
       "startupNoCar",
       "Dashcam mode with unsupported car",
-      "Always keep hands on wheel and eyes on road",
+      "If Tesla, please force fingerprint",
       AlertStatus.normal, AlertSize.mid,
       Priority.LOW_LOWEST, VisualAlert.none, AudibleAlert.none, 0., 0., 15.),
 
@@ -478,8 +478,8 @@ ALERTS = [
 
   Alert(
       "invalidGiraffeHonda",
-      "Invalid Giraffe Configuration",
-      "Set 0111 for openpilot. 1011 for stock",
+      "CAN Errors",
+      " ",
       AlertStatus.normal, AlertSize.mid,
       Priority.HIGH, VisualAlert.none, AudibleAlert.chimeDisengage, .4, 2., 3.),
 
@@ -676,8 +676,8 @@ ALERTS = [
 
   Alert(
       "invalidGiraffeHondaPermanent",
-      "Invalid Giraffe Configuration",
-      "Set 0111 for openpilot. 1011 for stock",
+      "CAN Errors",
+      " ",
       AlertStatus.normal, AlertSize.mid,
       Priority.LOW_LOWEST, VisualAlert.none, AudibleAlert.none, 0., 0., .2),
 

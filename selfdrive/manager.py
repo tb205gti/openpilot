@@ -5,12 +5,11 @@ import fcntl
 import errno
 import signal
 import subprocess
-import datetime
-from common.spinner import Spinner
 from selfdrive.tinklad.tinkla_interface import TinklaClient
 from cereal import tinkla
 from selfdrive.car.tesla.readconfig import CarSettings
-
+import datetime
+from common.spinner import Spinner
 
 from common.basedir import BASEDIR
 sys.path.append(os.path.join(BASEDIR, "pyextra"))
@@ -94,8 +93,9 @@ managed_processes = {
   "visiond": ("selfdrive/visiond", ["./visiond"]),
   "sensord": ("selfdrive/sensord", ["./start_sensord.py"]),
   "gpsd": ("selfdrive/sensord", ["./start_gpsd.py"]),
-  "updated": "selfdrive.updated",
+  #"updated": "selfdrive.updated",
 }
+
 daemon_processes = {
   "athenad": "selfdrive.athena.athenad",
 }
@@ -321,7 +321,6 @@ def system(cmd):
       output=e.output[-1024:],
       returncode=e.returncode)
 
-
 def sendUserInfoToTinkla(params):
   carSettings = CarSettings()
   gitRemote = params.get("GitRemote")
@@ -337,7 +336,6 @@ def sendUserInfoToTinkla(params):
       gitHash=gitHash
   )
   tinklaClient.setUserInfo(info)
-
 
 def manager_thread():
   # now loop
@@ -369,10 +367,8 @@ def manager_thread():
 
   logger_dead = False
 
-
   # Tinkla interface
   global tinklaClient
-  #PKA TODO re-enable  
   tinklaClient = TinklaClient()
   sendUserInfoToTinkla(params)
 
@@ -399,12 +395,13 @@ def manager_thread():
           start_managed_process(p)
     else:
       logger_dead = False
+      # print "msg.thermal.started is False"
       for p in car_started_processes:
         kill_managed_process(p)
 
     # check the status of all processes, did any of them die?
     running_list = ["   running %s %s" % (p, running[p]) for p in running]
-    cloudlog.debug('\n'.join(running_list))
+    #cloudlog.debug('\n'.join(running_list))
 
     # is this still needed?
     if params.get("DoUninstall") == "1":
@@ -474,16 +471,14 @@ def manager_update():
 def manager_prepare(spinner=None):
   # build cereal first
   subprocess.check_call(["make", "-j4"], cwd=os.path.join(BASEDIR, "cereal"))
-
+  carSettings = CarSettings()
   # build all processes
   os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
   for i, p in enumerate(managed_processes):
     if spinner is not None:
-      #PKW Load the spinner text from bb_config
-      carSettings = CarSettings()
-      txt = carSettings.spinnerText
-      spinner.update(txt % (100.0 * (i + 1) / len(managed_processes),))
+      spinText = carSettings.spinnerText
+      spinner.update(spinText % (100.0 * (i + 1) / len(managed_processes),))
     prepare_managed_process(p)
 
 def uninstall():
@@ -584,6 +579,7 @@ def main():
   except Exception:
     traceback.print_exc()
     crash.capture_exception()
+    print ("EXIT ON EXCEPTION")
   finally:
     cleanup_all_processes(None, None)
 

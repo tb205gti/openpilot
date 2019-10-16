@@ -141,14 +141,14 @@ def create_fake_DAS_msg(speed_control_enabled,speed_override,apUnavailable, coll
   msg_len = 8
   msg = create_string_buffer(msg_len)
   units_included = 1
-  c_apply_steer = ((int( apply_angle * 10 + 0x4000 )) & 0x7FFF) + (enable_steer_control << 15)
-  struct.pack_into('BBBBBBBB', msg, 0,(speed_control_enabled << 7) + (speed_override << 6) + (apUnavailable << 5) + (collision_warning << 4) + op_status, \
-      acc_speed_kph, \
-      (turn_signal_needed << 6) + (units_included << 5) + (forward_collission_warning << 4) + hands_on_state, \
-      (cc_state << 6) + (pedal_state << 5) + alca_state, \
-      acc_speed_limit_mph,
-      legal_speed_limit,
-      c_apply_steer & 0xFF,
+  c_apply_steer = int(((int( apply_angle * 10 + 0x4000 )) & 0x7FFF) + (enable_steer_control << 15))
+  struct.pack_into('BBBBBBBB', msg, 0,int((speed_control_enabled << 7) + (speed_override << 6) + (apUnavailable << 5) + (collision_warning << 4) + op_status), \
+      int(acc_speed_kph), \
+      int((turn_signal_needed << 6) + (units_included << 5) + (forward_collission_warning << 4) + hands_on_state), \
+      int((cc_state << 6) + (pedal_state << 5) + alca_state), \
+      int(acc_speed_limit_mph),
+      int(legal_speed_limit),
+      int(c_apply_steer & 0xFF),
       int((c_apply_steer >> 8) & 0xFF))
   return [msg_id, 0, msg.raw, 0]
 
@@ -261,7 +261,7 @@ def create_cruise_adjust_msg(spdCtrlLvr_stat, turnIndLvr_Stat, real_steering_whe
                    (fake_stalk['SpdCtrlLvr_Stat']) +
                    (int(round(fake_stalk['VSL_Enbl_Rq'])) << 6))
   # Set the 2nd byte, containing DTR_Dist_Rq
-  struct.pack_into('B', msg, 1,  fake_stalk['DTR_Dist_Rq'])
+  struct.pack_into('B', msg, 1,  int(fake_stalk['DTR_Dist_Rq']))
   # Set the 3rd byte, containing turn indicator, highbeams, and wiper wash
   struct.pack_into('B', msg, 2,
                    int(round(fake_stalk['TurnIndLvr_Stat'])) +
@@ -276,7 +276,7 @@ def create_cruise_adjust_msg(spdCtrlLvr_stat, turnIndLvr_Stat, real_steering_whe
   
   # Finally, set the CRC for the message. Must be calculated last!
   fake_stalk['CRC_STW_ACTN_RQ'] = add_tesla_crc(msg=msg, msg_len=7)
-  struct.pack_into('B', msg, msg_len-1, fake_stalk['CRC_STW_ACTN_RQ'])
+  struct.pack_into('B', msg, msg_len-1, int(fake_stalk['CRC_STW_ACTN_RQ']))
 
   return [msg_id, 0, msg.raw, 0]
 

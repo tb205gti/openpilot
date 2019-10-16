@@ -55,7 +55,6 @@ def get_subscriber_info():
     return ""
   return ret
 
-
 def get_git_remote():
   try:
     local_branch = subprocess.run(["git", "name-rev", "--name-only", "HEAD"], capture_output=True).stdout.decode("utf-8").strip()
@@ -63,7 +62,6 @@ def get_git_remote():
     return subprocess.run(["git", "config", "remote."+tracking_remote+".url"],capture_output=True).stdout.decode("utf-8").strip()
   except subprocess.CalledProcessError:
     return ""
-
 
 def register():
   params = Params()

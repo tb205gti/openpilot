@@ -129,3 +129,4 @@ class CANParser():
     for msg in set(self._msgs):
       if msg in self.msgs_ck and self.sec_since_boot_cached - self.ct[msg] > 10./self.frqs[msg]:
         self.ok[msg] = False
+

@@ -6,25 +6,27 @@ from selfdrive.controls.lib.lateral_mpc import libmpc_py
 from selfdrive.controls.lib.drive_helpers import MPC_COST_LAT
 from selfdrive.controls.lib.lane_planner import LanePlanner
 import selfdrive.messaging as messaging
+from selfdrive.car.tesla.readconfig import CarSettings
 
 LOG_MPC = os.environ.get('LOG_MPC', False)
 
 
-def calc_states_after_delay(states, v_ego, steer_angle, curvature_factor, steer_ratio, delay):
-  states[0].x = v_ego * delay
+def calc_states_after_delay(states, v_ego, steer_angle, curvature_factor, steer_ratio, delay, long_camera_offset):
+  states[0].x = max(v_ego * delay + long_camera_offset, 0.0)
   states[0].psi = v_ego * curvature_factor * math.radians(steer_angle) / steer_ratio * delay
   return states
 
 
 class PathPlanner():
   def __init__(self, CP):
-    self.LP = LanePlanner()
+    self.LP = LanePlanner(shouldUseAlca=True)
 
     self.last_cloudlog_t = 0
 
     self.setup_mpc(CP.steerRateCost)
     self.solution_invalid_cnt = 0
     self.path_offset_i = 0.0
+    self.eonToFront = CarSettings().get_value("eonToFront")
 
   def setup_mpc(self, steer_rate_cost):
     self.libmpc = libmpc_py.libmpc
@@ -45,11 +47,12 @@ class PathPlanner():
   def update(self, sm, pm, CP, VM):
     v_ego = sm['carState'].vEgo
     angle_steers = sm['carState'].steeringAngle
+    #angle_steers_des = sm['controlsState'].angleSteersDes
     active = sm['controlsState'].active
 
     angle_offset = sm['liveParameters'].angleOffset
 
-    self.LP.update(v_ego, sm['model'])
+    self.LP.update(v_ego, sm['model'],True)
 
     # Run MPC
     self.angle_steers_des_prev = self.angle_steers_des_mpc
@@ -65,7 +68,9 @@ class PathPlanner():
     #   self.path_offset_i = 0.0
 
     # account for actuation delay
-    self.cur_state = calc_states_after_delay(self.cur_state, v_ego, angle_steers - angle_offset, curvature_factor, VM.sR, CP.steerActuatorDelay)
+    
+
+    self.cur_state = calc_states_after_delay(self.cur_state, v_ego, angle_steers - angle_offset, curvature_factor, VM.sR, CP.steerActuatorDelay, self.eonToFront)
 
     v_ego_mpc = max(v_ego, 5.0)  # avoid mpc roughness due to low speed
     self.libmpc.run_mpc(self.cur_state, self.mpc_solution,

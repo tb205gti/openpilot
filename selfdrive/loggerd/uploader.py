@@ -15,7 +15,10 @@ from selfdrive.swaglog import cloudlog
 from selfdrive.loggerd.config import ROOT
 
 from common.params import Params
+
 from common.api import Api
+from selfdrive.car.tesla.readconfig import read_config_file,CarSettings
+
 
 fake_upload = os.getenv("FAKEUPLOAD") is not None
 
@@ -90,7 +93,6 @@ def is_on_hotspot():
     is_other_tether = blockUploadWhileTethering and result.startswith(tetherIP)
     is_entune = result.startswith('10.0.2.')
     return (is_android or is_ios or is_other_tether or is_entune)
-    
   except:
     return False
 
