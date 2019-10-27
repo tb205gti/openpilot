@@ -30,8 +30,9 @@ def calc_d_poly(l_poly, r_poly, p_poly, l_prob, r_prob, lane_width):
   path_from_right_lane = r_poly.copy()
   path_from_right_lane[3] += lane_width / 2.0
 
-  lr_prob = l_prob * r_prob
-
+#  lr_prob = l_prob * r_prob
+  lr_prob = l_prob + r_prob - l_prob * r_prob
+  
   d_poly_lane = (l_prob * path_from_left_lane + r_prob * path_from_right_lane) / (l_prob + r_prob + 0.0001)
   return lr_prob * d_poly_lane + (1.0 - lr_prob) * p_poly
 
@@ -43,9 +44,9 @@ class LanePlanner():
     self.p_poly = [0., 0., 0., 0.]
     self.d_poly = [0., 0., 0., 0.]
 
-#    self.lane_width_estimate = 3.7
-#    self.lane_width_certainty = 1.0
-#    self.lane_width = 3.7
+    self.lane_width_estimate = 3.7
+    self.lane_width_certainty = 1.0
+    self.lane_width = 3.7
 
     self.lane_width = 3.6
     self.readings = []
@@ -80,29 +81,29 @@ class LanePlanner():
     self.r_poly[3] += CAMERA_OFFSET
 
     # Find current lanewidth
-#    self.lane_width_certainty += 0.05 * (self.l_prob * self.r_prob - self.lane_width_certainty)
-#    current_lane_width = abs(self.l_poly[3] - self.r_poly[3])
-#    self.lane_width_estimate += 0.005 * (current_lane_width - self.lane_width_estimate)
-#    speed_lane_width = interp(v_ego, [0., 31.], [2.8, 3.5])
-#    self.lane_width = self.lane_width_certainty * self.lane_width_estimate + \
-#                      (1 - self.lane_width_certainty) * speed_lane_width
+    self.lane_width_certainty += 0.05 * (self.l_prob * self.r_prob - self.lane_width_certainty)
+    current_lane_width = abs(self.l_poly[3] - self.r_poly[3])
+    self.lane_width_estimate += 0.005 * (current_lane_width - self.lane_width_estimate)
+    speed_lane_width = interp(v_ego, [0., 31.], [2.8, 3.5])
+    self.lane_width = self.lane_width_certainty * self.lane_width_estimate + \
+                      (1 - self.lane_width_certainty) * speed_lane_width
 
 
 
-    if self.l_prob > 0.49 and self.r_prob > 0.49:
-      self.frame += 1
-      if self.frame % self.moduloruns == 0:
-        self.frame = 0
-        current_lane_width = sorted((2.6, abs(self.l_poly[3] - self.r_poly[3]), 3.6))[1]
-        max_samples = self.maxreadings
-        self.readings.append(current_lane_width)
-        self.lane_width = mean(self.readings)
-        if len(self.readings) == max_samples:
-          self.readings.pop(0)
+#    if self.l_prob > 0.49 and self.r_prob > 0.49:
+#      self.frame += 1
+#      if self.frame % self.moduloruns == 0:
+#        self.frame = 0
+#        current_lane_width = sorted((2.6, abs(self.l_poly[3] - self.r_poly[3]), 3.6))[1]
+#        max_samples = self.maxreadings
+#        self.readings.append(current_lane_width)
+#        self.lane_width = mean(self.readings)
+#        if len(self.readings) == max_samples:
+#          self.readings.pop(0)
 
     # Don't exit dive, set r_prob lower if the lane goes too wide (3.9 Meters+)
-    if abs(self.l_poly[3] - self.r_poly[3]) > (self.lane_width + 0.2):
-      self.r_prob = self.r_prob / interp(self.l_prob, [0, 1], [1, 3])
+#    if abs(self.l_poly[3] - self.r_poly[3]) > (self.lane_width + 0.3):
+#      self.r_prob = self.r_prob / interp(self.l_prob, [0, 1], [1, 3])
 
     # ALCA integration
     if self.shouldUseAlca and alca:
