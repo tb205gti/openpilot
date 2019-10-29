@@ -31,7 +31,7 @@ DES_ANGLE_ADJUST_FACTOR = [1.0, 1.0, 1.0]
 
 #LDW WARNING LEVELS
 LDW_WARNING_1 = 1.0
-LDW_WARNING_2 = 0.9
+LDW_WARNING_2 = 0.5
 LDW_LANE_PROBAB = 0.3
 
 def gen_solution(CS):
@@ -738,7 +738,7 @@ class CarController():
           self.curv0 = self.ALCA.laneChange_direction * self.laneWidth - self.curv0
         self.curv0 = clip(self.curv0, -3.5, 3.5)
       else:
-        if CS.enableLdw and (not CS.blinker_on) and (CS.v_ego > 21) and (turn_signal_needed == 0):
+        if CS.enableLdw and (not CS.blinker_on) and (CS.v_ego > 14) and (turn_signal_needed == 0):
           if pp.lProb > LDW_LANE_PROBAB:
             lLaneC0 = -pp.lPoly[3]
             if abs(lLaneC0) < LDW_WARNING_2:
@@ -748,9 +748,9 @@ class CarController():
           if pp.rProb > LDW_LANE_PROBAB:
             rLaneC0 = -pp.rPoly[3]
             if abs(rLaneC0) < LDW_WARNING_2:
-              self.ldwStatus = 3
+              self.ldwStatus = 4
             elif  abs(rLaneC0) < LDW_WARNING_1:
-              self.ldwStatus = 1
+              self.ldwStatus = 2
       if not(self.prev_ldwStatus == self.ldwStatus):
         self.warningNeeded = 1
         if self.ldwStatus > 0:

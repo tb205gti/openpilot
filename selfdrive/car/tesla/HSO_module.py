@@ -1,7 +1,7 @@
 #human steer override module
 import time
 
-MAX_TIME_BLINKER_ON = 150 # in 0.01 seconds
+MAX_TIME_BLINKER_ON = 125 # in 0.01 seconds
 TIME_REMEMBER_LAST_BLINKER = 50 # in 0.01 seconds
 
 def _current_time_millis():

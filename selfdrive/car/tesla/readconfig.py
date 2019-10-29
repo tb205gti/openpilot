@@ -22,7 +22,6 @@ class ConfigFile():
 
       main_section = 'OP_CONFIG'
       logging_section = 'LOGGING'
-      pid_section = 'PIDS'
       config = configparser.RawConfigParser(allow_no_value=True)
       config.add_section(main_section)
       config.add_section(logging_section)
