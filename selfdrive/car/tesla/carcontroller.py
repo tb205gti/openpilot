@@ -30,9 +30,10 @@ DES_ANGLE_ADJUST_FACTOR_BP = [0.,13., 44.]
 DES_ANGLE_ADJUST_FACTOR = [1.0, 1.0, 1.0]
 
 #LDW WARNING LEVELS
-LDW_WARNING_1 = 1.0
+LDW_WARNING_1 = 0.9
 LDW_WARNING_2 = 0.5
-LDW_LANE_PROBAB = 0.3
+LDW_LANE_PROBAB = 0.2
+
 
 def gen_solution(CS):
   fix = 0
@@ -197,6 +198,11 @@ class CarController():
 
     self.radarVin_idx = 0
 
+    self.LDW_NUMB_PERIOD = 400 #5 seconds if 100Hz
+    self.should_ldw = False
+    self.ldw_numb_frame_start = 0
+    self.prev_changing_lanes = False
+
     self.isMetric = (self.params.get("IsMetric") == "1")
 
   def reset_traffic_events(self):
@@ -314,13 +320,24 @@ class CarController():
     # Prevent steering while stopped
     MIN_STEERING_VEHICLE_VELOCITY = 0.05 # m/s
     vehicle_moving = (CS.v_ego >= MIN_STEERING_VEHICLE_VELOCITY)
-    
+
     # Basic highway lane change logic
     changing_lanes = CS.right_blinker_on or CS.left_blinker_on
 
+    #only test 4 times a second, ldw numbing is not time critical - 4 times a second should be more than enough
+    if (frame % 25 == 0):
+      if (self.prev_changing_lanes and not changing_lanes): #we have a transition from blinkers on to blinkers off, save the frame
+        self.ldw_numb_frame_start = frame
+        print("LDW Transition detected, frame (%d)", frame)
+
+      # update the previous state of the blinkers (chaning_lanes)
+      self.prev_changing_lanes = changing_lanes
+
+      self.should_ldw = (frame > (self.ldw_numb_frame_start + self.LDW_NUMB_PERIOD))
+
     #upodate custom UI buttons and alerts
     CS.UE.update_custom_ui()
-      
+
     if (frame % 100 == 0):
       CS.cstm_btns.send_button_info()
       #read speed limit params
@@ -738,7 +755,8 @@ class CarController():
           self.curv0 = self.ALCA.laneChange_direction * self.laneWidth - self.curv0
         self.curv0 = clip(self.curv0, -3.5, 3.5)
       else:
-        if CS.enableLdw and (not CS.blinker_on) and (CS.v_ego > 14) and (turn_signal_needed == 0):
+        if self.should_ldw and (CS.enableLdw and (not CS.blinker_on) and (CS.v_ego > 14) and (turn_signal_needed == 0)):
+          self.ldw_numb_frame_start = 0 #reset frame_start for the transition
           if pp.lProb > LDW_LANE_PROBAB:
             lLaneC0 = -pp.lPoly[3]
             if abs(lLaneC0) < LDW_WARNING_2:
