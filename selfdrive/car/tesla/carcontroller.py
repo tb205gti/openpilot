@@ -767,13 +767,13 @@ class CarController():
             if abs(lLaneC0) < LDW_WARNING_2:
               self.ldwStatus = 3
             elif  abs(lLaneC0) < LDW_WARNING_1:
-              self.ldwStatus = 3 # temp give audible warnign to debug 1
+              self.ldwStatus = 1
           if pp.rProb > LDW_LANE_PROBAB:
             rLaneC0 = -pp.rPoly[3]
             if abs(rLaneC0) < LDW_WARNING_2:
               self.ldwStatus = 4
             elif  abs(rLaneC0) < LDW_WARNING_1:
-              self.ldwStatus = 4 # temp give audible warning to debug 2
+              self.ldwStatus = 2
       if not(self.prev_ldwStatus == self.ldwStatus):
         self.warningNeeded = 1
         if self.ldwStatus > 0:
