@@ -1,7 +1,7 @@
 #human steer override module
 import time
 
-MAX_TIME_BLINKER_ON = 125 # in 0.01 seconds
+MAX_TIME_BLINKER_ON = 150 # in 0.01 seconds
 TIME_REMEMBER_LAST_BLINKER = 50 # in 0.01 seconds
 
 def _current_time_millis():
@@ -10,6 +10,7 @@ def _current_time_millis():
 class HSOController():
     def __init__(self,carcontroller):
         self.CC = carcontroller
+        self.human_control = False
         self.frame_humanSteered = 0
         self.turn_signal_needed = 0 # send 1 for left, 2 for right 0 for not needed
         self.last_blinker_on = 0
@@ -17,7 +18,8 @@ class HSOController():
         self.frame_blinker_on = 0
         self.last_human_blinker_on = 0
         self.frame_human_blinker_on = 0
-        self.HSO_numb_period = 55
+        self.HSO_frame_blinker_on = 0
+    
 
     def update_stat(self,CC,CS,enabled,actuators,frame):
         human_control = False
@@ -28,6 +30,10 @@ class HSOController():
         elif CS.left_blinker_on:
           self.blinker_on = 1
           self.frame_human_blinker_on = frame
+        if (self.last_blinker_on == 0) and (self.blinker_on > 0) and (self.CC.ALCA.laneChange_enabled <= 1):
+          self.HSO_frame_blinker_on = frame
+        if (self.last_blinker_on == 0) and (self.blinker_on == 0):  
+          self.HSO_frame_blinker_on = 0
         if self.blinker_on > 0:
             self.frame_blinker_on = frame
             self.last_human_blinker_on = self.blinker_on
@@ -53,8 +59,7 @@ class HSOController():
               steer_current=(CS.angle_steers)  # Formula to convert current steering angle to match apply_steer calculated number
               apply_steer = int(-actuators.steerAngle)
               angle = abs(apply_steer-steer_current)
-              #if angle > 10.:
-              if frame < (self.frame_blinker_on + self.HSO_numb_period) or angle > 10.:
+              if frame < (self.HSO_frame_blinker_on + int(50 * CS.hsoNumbPeriod)) or angle > 10.:
                 self.frame_humanSteered = frame
         if enabled:
             if CS.enableHSO:
@@ -78,4 +83,5 @@ class HSOController():
           self.turn_signal_needed = 0
           self.blinker_on = 0
           self.last_blinker_on = 0
+        self.human_control = human_control
         return human_control and enabled, self.turn_signal_needed

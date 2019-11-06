@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from cereal import car, tesla
 from common.numpy_fast import clip, interp
-from common.realtime import sec_since_boot, DT_CTRL
+from common.realtime import DT_CTRL
 from selfdrive.config import Conversions as CV
 from selfdrive.controls.lib.drive_helpers import create_event, EventTypes as ET, get_events
 from selfdrive.controls.lib.vehicle_model import VehicleModel
@@ -68,7 +68,7 @@ class CarInterface():
     # - a_ego exceeds a_target and v_ego is close to v_target
 
     # normalized max accel. Allowing max accel at low speed causes speed overshoots
-    max_accel_bp = [10, 17]    # m/s allow max accel from 61km/h
+    max_accel_bp = [10, 20]    # m/s
     max_accel_v = [0.714, 1.0] # unit of max accel
     max_accel = interp(v_ego, max_accel_bp, max_accel_v)
 
@@ -134,7 +134,7 @@ class CarInterface():
       ret.mass = mass_models
       ret.wheelbase = wheelbase_models
       ret.centerToFront = centerToFront_models
-      ret.steerRatio = 12.
+      ret.steerRatio = 11.5
       # Kp and Ki for the lateral control for 0, 20, 40, 60 mph
       ret.lateralTuning.pid.kpV, ret.lateralTuning.pid.kiV = [[1.20, 0.80, 0.60, 0.30], [0.16, 0.12, 0.08, 0.04]]
       ret.lateralTuning.pid.kf = 0.00006 # Initial test value TODO: investigate FF steer control for Model S?
@@ -162,9 +162,9 @@ class CarInterface():
         ret.longitudinalTuning.kiV = [0.01,0.01,0.01]
       elif teslaModel == "SPD":
         ret.longitudinalTuning.kpBP = [0., 5., 35.]
-        ret.longitudinalTuning.kpV = [0.50, 0.45, 0.4]
+        ret.longitudinalTuning.kpV = [0.375, 0.325, 0.325]
         ret.longitudinalTuning.kiBP = [0., 5., 35.]
-        ret.longitudinalTuning.kiV = [0.009,0.008,0.007]
+        ret.longitudinalTuning.kiV = [0.00915,0.00825,0.00725]
       else:
         #use S numbers if we can't match anything
         ret.longitudinalTuning.kpBP = [0., 5., 35.]
@@ -216,7 +216,8 @@ class CarInterface():
     ret.openpilotLongitudinalControl = True
     ret.steerLimitAlert = False
     ret.startAccel = 0.5
-    ret.steerRateCost = 0.85  #0.85 #.516673
+    ret.steerRateCost = 1.0
+
     ret.radarOffCan = not CarSettings().get_value("useTeslaRadar")
 
     return ret
@@ -450,10 +451,10 @@ class CarInterface():
       # NO_ENTRY events, so controlsd will display alerts. Also not send enable events
       # too close in time, so a no_entry will not be followed by another one.
       # TODO: button press should be the only thing that triggers enble
-      if ((cur_time - self.last_enable_pressed) < 0.2 and
+      if ((cur_time - self.last_enable_pressed) < 0.2 and # pylint: disable=chained-comparison
           (cur_time - self.last_enable_sent) > 0.2 and
           ret.cruiseState.enabled) or \
-         (enable_pressed and get_events(events, [ET.NO_ENTRY])):
+         (enable_pressed and get_events(events, [ET.NO_ENTRY])): 
         if ret.seatbeltUnlatched:
           self.CC.DAS_211_accNoSeatBelt = 1
           self.CC.warningCounter = 300

@@ -205,7 +205,7 @@ class CarState():
                       [ACCMode.BUTTON_NAME,   ACCMode.BUTTON_ABREVIATION, ACCMode.labels()],
                       ["dsp",               "DSP",                      ["OP","MIN","OFF","GYRO"]],
                       ["",               "",                      [""]],
-                      ["",                 "",                      [""]],
+                      ["msg",                 "MSG",                      [""]],
                       ["sound",               "SND",                      [""]]]
     
     ### START OF MAIN CONFIG OPTIONS ###
@@ -215,9 +215,6 @@ class CarState():
     self.enableALCA = True
     self.enableDasEmulation = True
     self.enableRadarEmulation = True
-    self.enableSpeedVariableDesAngle = False
-    self.enableRollAngleCorrection = False
-    self.enableFeedForwardAngleCorrection = True
     self.enableDriverMonitor = True
     self.enableShowCar = True
     self.enableShowLogo = True
@@ -240,8 +237,9 @@ class CarState():
     self.radarEpasType = 0
     self.fix1916 = False
     self.forceFingerprintTesla = False
-    self.eonToFront = 0.1
     self.spinnerText = ""
+    self.hsoNumbPeriod = 1.1
+    self.ldwNumbPeriod = 4
     #read config file
     read_config_file(self)
     ### END OF MAIN CONFIG OPTIONS ###
@@ -524,8 +522,7 @@ class CarState():
       self.apFollowTimeInS =  1 + cp.vl["MCU_chassisControl"]["MCU_fcwSensitivity"] * 0.5
       self.keepEonOff = cp.vl["MCU_chassisControl"]["MCU_ldwEnable"] == 1
       self.alcaEnabled = cp.vl["MCU_chassisControl"]["MCU_pedalSafetyEnable"] == 1
-      # We invert it - so I do not have to de-select it every time O go for a drive
-      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] != 1
+      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] != 1 #reverse the option - to prevent unexpected bahaviour..
 
     usu = cp.vl['MCU_gpsVehicleSpeed']["MCU_userSpeedOffsetUnits"]
     if usu == 1:

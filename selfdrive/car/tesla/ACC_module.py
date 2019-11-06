@@ -69,6 +69,7 @@ class ACCController():
     # Whether to re-engage automatically after being paused due to low speed or
     # user-initated deceleration.
     self.autoresume = False
+    self.last_brake_press_time = 0
     self.last_cruise_stalk_pull_time = 0
     self.prev_cruise_buttons = CruiseButtons.IDLE
     self.prev_pcm_acc_status = 0
@@ -128,6 +129,7 @@ class ACCController():
       
     if CS.brake_pressed:
       self.user_has_braked = True
+      self.last_brake_press_time = _current_time_millis()
       if not self.autoresume:
         self.enable_adaptive_cruise = False
         
@@ -355,7 +357,7 @@ class ACCController():
       print ("Ratio: {0:.1f}%  lead: {1:.1f}m  avail: {2:.1f}kph  vRel: {3:.1f}kph  Angle: {4:.1f}deg".format(
         ratio, lead_dist_m, available_speed_kph, lead_car.vRel * CV.MS_TO_KPH, CS.angle_steers))
       self.last_update_time = current_time_ms
-      if msg != None:
+      if msg is not None:
         print ("ACC: " + msg)
     return button
     
@@ -369,11 +371,14 @@ class ACCController():
                     and CS.v_ego >= self.MIN_CRUISE_SPEED_MS
                     and _current_time_millis() > self.fast_decel_time + 2000)
                     
-    slow_lead = lead_car and lead_car.dRel > 0 and lead_car.vRel < 0 or self._fast_decel_required(CS, lead_car)
+    slow_lead = lead_car and lead_car.dRel > 0 and lead_car.vRel < 0 or self._fast_decel_required(CS, lead_car) # pylint: disable=chained-comparison
     
     # "Autoresume" mode allows cruise to engage even after brake events, but
     # shouldn't trigger DURING braking.
-    autoresume_ready = self.autoresume and CS.a_ego >= 0.1
+    autoresume_ready = (self.autoresume 
+			and CS.a_ego >= 0.1 
+			and not self.CC.HSO.human_control
+			and _current_time_millis() > self.last_brake_press_time + 1000)
     
     braked = self.user_has_braked or self.has_gone_below_min_speed
     

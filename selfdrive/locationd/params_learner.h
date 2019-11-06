@@ -19,11 +19,13 @@ class ParamsLearner {
 
   double min_sr, max_sr, min_sr_th, max_sr_th;
   double alpha1, alpha2, alpha3, alpha4;
+  double cs_sr;
 
 public:
   double ao;
   double slow_ao;
   double x, sR;
+  double prev_u; //BB previous speed so we only learn when speed is constant between iterations
 
   ParamsLearner(cereal::CarParams::Reader car_params,
                 double angle_offset,

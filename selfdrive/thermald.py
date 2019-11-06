@@ -19,8 +19,8 @@ from selfdrive.car.tesla.readconfig import read_config_file,CarSettings
 
 ThermalStatus = log.ThermalData.ThermalStatus
 CURRENT_TAU = 15.   # 15s time constant
-DAYS_NO_CONNECTIVITY_MAX = 70  # do not allow to engage after a week without internet
-DAYS_NO_CONNECTIVITY_PROMPT = 14  # send an offroad prompt after 4 days with no internet
+DAYS_NO_CONNECTIVITY_MAX = 70  # do not allow to engage after 2 weeks without internet
+DAYS_NO_CONNECTIVITY_PROMPT = 50  # send an offroad prompt after 10 days with no internet
 
 
 with open(BASEDIR + "/selfdrive/controls/lib/alerts_offroad.json") as json_file:
@@ -273,12 +273,9 @@ def thermald_thread():
 
     # start constellation of processes when the car starts
     ignition = health is not None and health.health.started
-    # print "Ignition from panda: ", ignition
     ignition_seen = ignition_seen or ignition
-
-    # add voltage check for ignition
-    #if not ignition_seen and health is not None and health.health.voltage > 13500:
-    #  ignition = True
+    if not ignition_seen and health is not None and health.health.voltage > 13500:       
+      ignition = True
 
     do_uninstall = params.get("DoUninstall") == b"1"
     accepted_terms = params.get("HasAcceptedTerms") == terms_version
@@ -346,7 +343,6 @@ def thermald_thread():
 
     if (count % int(10) == 0):
       print('BatteryLevel {} - BatteryCurrent: {} A'.format(msg.thermal.batteryPercent, (msg.thermal.batteryCurrent/1000000)*-1 ))
-    #print(msg)
 
     # report to server once per minute
     if (count % int(60. / DT_TRML)) == 0:
