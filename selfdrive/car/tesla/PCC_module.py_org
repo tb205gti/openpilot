@@ -111,6 +111,7 @@ def max_v_in_mapped_curve_ms(map_data, pedal_set_speed_kph):
     return None
 
 
+
 class PCCState():
   # Possible state of the ACC system, following the DI_cruiseState naming
   # scheme.
@@ -180,31 +181,6 @@ class PCCController():
     self.average_speed_over_x_suggestions = 3 #10x a second
     self.maxsuggestedspeed_avg = MovingAverage(self.average_speed_over_x_suggestions)
 
-
-  def load_pid(self):
-    try:
-      v_pid_json = open(V_PID_FILE)
-      data = json.load(v_pid_json)
-      self.LoC.pid.p = data['p']
-      self.LoC.pid.i = data['i']
-      self.LoC.pid.f = data['f']
-    except IOError:
-      print("file not present, creating at next reset")
-
-    #Helper function for saving the PCC pid constants across drives
-  def save_pid(self, pid):
-    data = {}
-    data ['p'] = pid.p
-    data ['i'] = pid.i
-    data ['f'] = pid.f
-    try:
-      with open(V_PID_FILE , 'w') as outfile :
-        json.dump(data, outfile)
-    except IOError:
-      print("PDD pid parameters could not be saved to file")
-
-
-
   def max_v_by_speed_limit(self,pedal_set_speed_ms ,speed_limit_ms, CS):
     # if more than 10 kph / 2.78 ms, consider we have speed limit
     # if the difference is more than 20 MPH, ignore the speed limit as it is probably wrong (an overpass' speed instead of the current road)
@@ -224,7 +200,11 @@ class PCCController():
 
   def reset(self, v_pid):
   # Save the v_pid at every disengagement - to keep the nice smoothenss across drives.
-    self.save_pid(self.LoC.pid)
+    if not RESET_PID_ON_DISENGAGE:
+      data = {}
+      data['v_pid'] = self.v_pid
+      with open(V_PID_FILE , 'w') as outfile :
+        json.dump(data, outfile)
 
     if self.LoC and RESET_PID_ON_DISENGAGE:
       self.LoC.reset(v_pid)
@@ -284,7 +264,7 @@ class PCCController():
       if ready and double_pull:
         # A double pull enables ACC. updating the max ACC speed if necessary.
         self.enable_pedal_cruise = True
-        self.reset(CS.v_ego)
+        self.LoC.reset(CS.v_ego)
         # Increase PCC speed to match current, if applicable.
         self.pedal_speed_kph = max(CS.v_ego * CV.MS_TO_KPH, self.speed_limit_kph)
     # Handle pressing the cancel button.
@@ -412,8 +392,14 @@ class PCCController():
     if PCCModes.is_selected(FollowMode(), CS.cstm_btns):
 
       # Get v_id from the stored file, only the first activation where v_pid eq 0
-      if (not RESET_PID_ON_DISENGAGE and self.v_pid == 0.): #no need to test for LoC - as it will be initialized first thing in the update function
-        self.load_pid()
+      if (self.v_pid == 0.):
+        try:
+#        with open(V_PID_FILE) as v_pid_json:
+          v_pid_json = open(V_PID_FILE)
+          data = json.load(v_pid_json)
+          self.v_pid = data['v_pid']
+        except IOError:
+          print("file not present, creating at next reset")
       else:
         self.v_pid = self.calc_follow_speed_ms(CS,alca_enabled)
 
@@ -433,7 +419,7 @@ class PCCController():
       self.pedal_state = CS.pedal_interceptor_value > 10
       #reset PID if we just lifted foot of accelerator
       if (not self.pedal_state) and self.prev_pedal_state:
-        self.reset(v_pid=CS.v_ego)
+        self.LoC.reset(v_pid=CS.v_ego)
 
       if self.enable_pedal_cruise and  (not self.pedal_state):
         jerk_min, jerk_max = _jerk_limits(CS.v_ego, self.lead_1, self.v_pid * CV.MS_TO_KPH, self.lead_last_seen_time_ms, CS)
@@ -471,7 +457,7 @@ class PCCController():
         output_gb = t_go - t_brake
         #print ("Output GB Follow:", output_gb)
       else:
-        self.reset(v_pid=CS.v_ego)
+        self.LoC.reset(v_pid=CS.v_ego)
         #print ("PID reset")
         output_gb = 0.
         starting = self.LoC.long_control_state == LongCtrlState.starting

@@ -198,7 +198,7 @@ class CarController():
 
     self.radarVin_idx = 0
 
-    self.LDW_NUMB_PERIOD = 400 #5 seconds if 100Hz
+    self.LDW_NUMB_PERIOD_S = 4 #4 seconds if 50Hz
     self.should_ldw = False
     self.ldw_numb_frame_start = 0
     self.prev_changing_lanes = False
@@ -325,15 +325,20 @@ class CarController():
     changing_lanes = CS.right_blinker_on or CS.left_blinker_on
 
     #only test 4 times a second, ldw numbing is not time critical - 4 times a second should be more than enough
-    if (frame % 25 == 0):
-      if (self.prev_changing_lanes and not changing_lanes): #we have a transition from blinkers on to blinkers off, save the frame
+    if (frame % 2 == 0):
+#TODO: Check if the numb frame star have been set already
+      if (not self.prev_changing_lanes and changing_lanes): #we have a transition from blinkers on to blinkers off, save the frame
         self.ldw_numb_frame_start = frame
-        print("LDW Transition detected, frame (%d)", frame)
+        CS.UE.custom_alert_message(3, "LDW Numb Starting", 150, 4)
 
       # update the previous state of the blinkers (chaning_lanes)
       self.prev_changing_lanes = changing_lanes
 
-      self.should_ldw = (frame > (self.ldw_numb_frame_start + self.LDW_NUMB_PERIOD))
+      self.should_ldw = (frame > (self.ldw_numb_frame_start + (self.LDW_NUMB_PERIOD_S*50)))
+
+      if self.should_ldw:
+        self.ldw_numb_frame_start = 0
+        CS.UE.custom_alert_message(3, "LDW Numb Ending", 150, 4)
 
     #upodate custom UI buttons and alerts
     CS.UE.update_custom_ui()
@@ -755,20 +760,20 @@ class CarController():
           self.curv0 = self.ALCA.laneChange_direction * self.laneWidth - self.curv0
         self.curv0 = clip(self.curv0, -3.5, 3.5)
       else:
-        if self.should_ldw and (CS.enableLdw and (not CS.blinker_on) and (CS.v_ego > 14) and (turn_signal_needed == 0)):
-          self.ldw_numb_frame_start = 0 #reset frame_start for the transition
+        if self.should_ldw and (CS.enableLdw and (not CS.blinker_on) and (CS.v_ego > 20) and (turn_signal_needed == 0)):
+          #self.ldw_numb_frame_start = 0 #reset frame_start for the transition
           if pp.lProb > LDW_LANE_PROBAB:
             lLaneC0 = -pp.lPoly[3]
             if abs(lLaneC0) < LDW_WARNING_2:
               self.ldwStatus = 3
             elif  abs(lLaneC0) < LDW_WARNING_1:
-              self.ldwStatus = 1
+              self.ldwStatus = 3 # temp give audible warnign to debug 1
           if pp.rProb > LDW_LANE_PROBAB:
             rLaneC0 = -pp.rPoly[3]
             if abs(rLaneC0) < LDW_WARNING_2:
               self.ldwStatus = 4
             elif  abs(rLaneC0) < LDW_WARNING_1:
-              self.ldwStatus = 2
+              self.ldwStatus = 4 # temp give audible warning to debug 2
       if not(self.prev_ldwStatus == self.ldwStatus):
         self.warningNeeded = 1
         if self.ldwStatus > 0:

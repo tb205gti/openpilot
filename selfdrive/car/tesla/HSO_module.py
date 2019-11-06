@@ -17,7 +17,7 @@ class HSOController():
         self.frame_blinker_on = 0
         self.last_human_blinker_on = 0
         self.frame_human_blinker_on = 0
-        self.HSO_numb_period = 150
+        self.HSO_numb_period = 55
 
     def update_stat(self,CC,CS,enabled,actuators,frame):
         human_control = False
