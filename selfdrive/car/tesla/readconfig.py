@@ -270,7 +270,7 @@ class ConfigFile():
       into.hsoNumbPeriod, didUpdate = self.read_config_entry(
         config, configr, prev_file_contents, section = pref_section,
         entry = 'hso_numb_period', entry_type = float,
-        default_value = 1.5,
+        default_value = 1.0,
         comment = 'Period to delay (in seconds) the reengagement of LKAS after human turn signal has been used. Time starts when the turn signal is turned on.'
       )
       file_changed |= didUpdate
@@ -288,7 +288,7 @@ class ConfigFile():
       into.ldwNumbPeriod, didUpdate = self.read_config_entry(
         config, configr, prev_file_contents, section = pref_section,
         entry = 'ldw_numb_period', entry_type = float,
-        default_value = 1.5,
+        default_value = 4.0,
         comment = 'Period to delay (in seconds) the LDW warnings after human turn signal has been used. Time starts when the turn signal is turned on.'
       )
       file_changed |= didUpdate
@@ -306,7 +306,7 @@ class ConfigFile():
       into.enableShowLogo, didUpdate = self.read_config_entry(
         config, configr, prev_file_contents, section = pref_section,
         entry = 'enable_show_logo', entry_type = bool,
-        default_value = True,
+        default_value = False,
         comment = 'Shows a Tesla red logo on the EON screen when OP is not enabled'
       )
       file_changed |= didUpdate
