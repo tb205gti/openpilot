@@ -485,7 +485,7 @@ void bb_ui_draw_measures_left( UIState *s, int bb_x, int bb_y, int bb_w ) {
 	}
 	
 	//add grey panda GPS accuracy
-	if (true) {
+	if (false) {
 		char val_str[16];
 		char uom_str[3];
 		NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
@@ -516,7 +516,7 @@ void bb_ui_draw_measures_left( UIState *s, int bb_x, int bb_y, int bb_w ) {
 		bb_ry = bb_y + bb_h;
 	}
   //add free space - from bthaler1
-	if (true) {
+	if (false) {
 		char val_str[16];
 		char uom_str[3];
 		NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
@@ -679,7 +679,7 @@ void bb_ui_draw_measures_right( UIState *s, int bb_x, int bb_y, int bb_w ) {
 	int bb_uom_dx =  (int)(bb_w /2 - uom_fontSize*2.5) ;
 	
 	//add visual radar relative distance
-	if (true) {
+	if (false) {
 		char val_str[16];
 		char uom_str[6];
 		NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
@@ -714,7 +714,7 @@ void bb_ui_draw_measures_right( UIState *s, int bb_x, int bb_y, int bb_w ) {
 	}
 	
 	//add visual radar relative speed
-	if (true) {
+	if (false) {
 		char val_str[16];
 		char uom_str[6];
 		NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
@@ -749,7 +749,7 @@ void bb_ui_draw_measures_right( UIState *s, int bb_x, int bb_y, int bb_w ) {
 	}
 	
 	//add  steering angle
-	if (true) {
+	if (false) {
 		char val_str[16];
 		char uom_str[6];
 		NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
