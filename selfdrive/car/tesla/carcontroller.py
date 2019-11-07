@@ -329,13 +329,14 @@ class CarController():
 
       #Determine if we should have LDW or not
       self.should_ldw = (frame > (self.ldw_numb_frame_start + int( 50 * CS.ldwNumbPeriod)))
-      if self.should_ldw:
+
+      if self.should_ldw and self.ldw_numb_frame_start != 0:
         self.ldw_numb_frame_start = 0
         CS.UE.custom_alert_message(3, "LDW Numb Ending", 150, 4)
 
     #upodate custom UI buttons and alerts
     CS.UE.update_custom_ui()
-      
+
     if (frame % 100 == 0):
       CS.cstm_btns.send_button_info()
       #read speed limit params
