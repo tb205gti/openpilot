@@ -7,7 +7,7 @@ static void ui_draw_infobar(UIState *s) {
   bool hasSidebar = !s->scene.uilayout_sidebarcollapsed;
   int rect_w = vwp_w - ui_viz_rx;
 //  int rect_w = vwp_w - (hasSidebar? sbr_w : 0);
-  int rect_h = 80;
+  int rect_h = 60;
   int rect_x = 0;
   // rect_y = screen height - board - background height
   int rect_y = vwp_h - bdr_s - (int) (rect_h/2) - 5;
@@ -26,7 +26,7 @@ static void ui_draw_infobar(UIState *s) {
   struct tm tm = *localtime(&t);
 
   char spd[9];
-  snprintf(spd, sizeof(spd), "%i kmh", (int) s->scene.v_ego);
+  snprintf(spd, sizeof(spd), "%i kmh", (int) (s->scene.v_ego * 3.6 + 0.5));
 
   char ang_steer[9];
   snprintf(ang_steer, sizeof(ang_steer), "%s%05.1f°", s->b.angleSteers < 0? "-" : "+", fabs(s->b.angleSteers));
@@ -41,7 +41,7 @@ static void ui_draw_infobar(UIState *s) {
   snprintf(
     infobar,
     sizeof(infobar),
-    "%04d/%02d/%02d %02d:%02d:%02d | SPD: %s | ANG: %s | DIST: %s",
+    "%04d/%02d/%02d %02d:%02d:%02d | SPD: %s | DST: %s | ANG: %s",
     tm.tm_year + 1900,
     tm.tm_mon + 1,
     tm.tm_mday,
