@@ -306,7 +306,7 @@ class ConfigFile():
       into.enableShowLogo, didUpdate = self.read_config_entry(
         config, configr, prev_file_contents, section = pref_section,
         entry = 'enable_show_logo', entry_type = bool,
-        default_value = False,
+        default_value = True,
         comment = 'Shows a Tesla red logo on the EON screen when OP is not enabled'
       )
       file_changed |= didUpdate

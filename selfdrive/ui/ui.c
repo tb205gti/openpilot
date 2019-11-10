@@ -97,8 +97,8 @@ const uint8_t alert_colors[][4] = {
 
 const int alert_sizes[] = {
   [ALERTSIZE_NONE] = 0,
-  [ALERTSIZE_SMALL] = 241,
-  [ALERTSIZE_MID] = 390,
+  [ALERTSIZE_SMALL] = 141,
+  [ALERTSIZE_MID] = 290,
   [ALERTSIZE_FULL] = vwp_h,
 };
 

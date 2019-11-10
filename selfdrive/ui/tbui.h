@@ -1,24 +1,18 @@
 
-
-
 static void ui_draw_infobar(UIState *s) {
   const UIScene *scene = &s->scene;
   int ui_viz_rx = scene->ui_viz_rx;
   bool hasSidebar = !s->scene.uilayout_sidebarcollapsed;
-  int rect_w = vwp_w - ui_viz_rx;
-//  int rect_w = vwp_w - (hasSidebar? sbr_w : 0);
+  int rect_w = vwp_w - ui_viz_rx - bdr_s;
   int rect_h = 60;
   int rect_x = 0;
   // rect_y = screen height - board - background height
   int rect_y = vwp_h - bdr_s - (int) (rect_h/2) - 5;
   rect_x = rect_x + ui_viz_rx;
-//  rect_x = rect_x + (hasSidebar? sbr_w : 0) + ui_viz_rx;
 
-//  int text_width;
   int text_x = rect_w / 2;
   text_x = text_x + ui_viz_rx;
-//  text_x = text_x + (hasSidebar? sbr_w : 0) + ui_viz_rx;
-  int text_y = rect_y + 55;
+  int text_y = rect_y + 45;
 
   // Get local time to display
   char infobar[68];
@@ -26,10 +20,10 @@ static void ui_draw_infobar(UIState *s) {
   struct tm tm = *localtime(&t);
 
   char spd[9];
-  snprintf(spd, sizeof(spd), "%i kmh", (int) (s->scene.v_ego * 3.6 + 0.5));
+  snprintf(spd, sizeof(spd), "%i", (int) (s->scene.v_ego * 3.6 + 0.5));
 
   char ang_steer[9];
-  snprintf(ang_steer, sizeof(ang_steer), "%s%05.1f°", s->b.angleSteers < 0? "-" : "+", fabs(s->b.angleSteers));
+  snprintf(ang_steer, sizeof(ang_steer), "%s%04.1f°", s->b.angleSteers < 0? "-" : "+", fabs(s->b.angleSteers));
 
   char lead_dist[8];
   if (s->scene.lead_status) {
@@ -38,10 +32,21 @@ static void ui_draw_infobar(UIState *s) {
     snprintf(lead_dist, sizeof(lead_dist), "%7s", "N/A");
   }
 
+  char maxspeed_str[12];
+  float maxspeed = s->scene.v_cruise;
+  int maxspeed_calc = maxspeed + 0.5;
+  bool is_cruise_set = (maxspeed != 0 && maxspeed != 255);
+
+  if (is_cruise_set) {
+    snprintf(maxspeed_str, sizeof(maxspeed_str), "[%d] kmh", maxspeed_calc);
+  } else{
+    snprintf(maxspeed_str, sizeof(maxspeed_str), "%s", "[--] kmh");
+  }
+
   snprintf(
     infobar,
     sizeof(infobar),
-    "%04d/%02d/%02d %02d:%02d:%02d | SPD: %s | DST: %s | ANG: %s",
+    "%04d/%02d/%02d %02d:%02d:%02d | SPD: %s %s | DST: %s | ANG: %s",
     tm.tm_year + 1900,
     tm.tm_mon + 1,
     tm.tm_mday,
@@ -49,12 +54,13 @@ static void ui_draw_infobar(UIState *s) {
     tm.tm_min,
     tm.tm_sec,
     spd,
+    maxspeed_str,
     lead_dist,
     ang_steer
   );
 
   nvgBeginPath(s->vg);
-  nvgRoundedRect(s->vg, rect_x, rect_y, rect_w, rect_h, 15);
+  nvgRoundedRect(s->vg, rect_x, rect_y, rect_w, rect_h, 5);
   nvgFillColor(s->vg, nvgRGBA(0, 0, 0, 180));
   nvgFill(s->vg);
 

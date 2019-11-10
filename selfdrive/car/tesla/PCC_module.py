@@ -12,10 +12,10 @@ import selfdrive.messaging as messaging
 import time
 import zmq
 import math
-import json
 from collections import OrderedDict
 from common.params import Params
 from selfdrive.car.tesla.movingaverage import MovingAverage
+import json
 
 _DT = 0.05    # 10Hz in our case, since we don't want to process more than once the same radarState message
 _DT_MPC = _DT
@@ -50,7 +50,7 @@ MIN_CAN_SPEED = 0.3  #TODO: parametrize this in car interface
 # Pull the cruise stalk twice in this many ms for a 'double pull'
 STALK_DOUBLE_PULL_MS = 750
 
-V_PID_FILE = '/data/params/d/pidParams'
+V_PID_FILE = '/data/params/pidParams'
 
 class Mode():
   label = None
@@ -109,6 +109,7 @@ def max_v_in_mapped_curve_ms(map_data, pedal_set_speed_kph):
     return _interp_map(time_to_turn_s, v_approaching_turn_ms)
   else:
     return None
+
 
 
 class PCCState():
@@ -179,37 +180,37 @@ class PCCController():
     self.params = Params()
     self.average_speed_over_x_suggestions = 3 #10x a second
     self.maxsuggestedspeed_avg = MovingAverage(self.average_speed_over_x_suggestions)
-
-
+    
   def load_pid(self):
     try:
       v_pid_json = open(V_PID_FILE)
       data = json.load(v_pid_json)
-      self.LoC.pid.p = data['p']
-      self.LoC.pid.i = data['i']
-      self.LoC.pid.f = data['f']
+      if (self.LoC):
+        if self.LoC.pid:
+          self.LoC.pid.p = data['p']
+          self.LoC.pid.i = data['i']
+          self.LoC.pid.f = data['f']
+      else:
+        print("self.LoC not initialized!")
     except IOError:
       print("file not present, creating at next reset")
 
     #Helper function for saving the PCC pid constants across drives
   def save_pid(self, pid):
     data = {}
-    data ['p'] = pid.p
-    data ['i'] = pid.i
-    data ['f'] = pid.f
+    data['p'] = pid.p
+    data['i'] = pid.i
+    data['f'] = pid.f
     try:
       with open(V_PID_FILE , 'w') as outfile :
         json.dump(data, outfile)
     except IOError:
       print("PDD pid parameters could not be saved to file")
 
-
-
   def max_v_by_speed_limit(self,pedal_set_speed_ms ,speed_limit_ms, CS):
     # if more than 10 kph / 2.78 ms, consider we have speed limit
     # if the difference is more than 20 MPH, ignore the speed limit as it is probably wrong (an overpass' speed instead of the current road)
-    if (CS.maxdrivespeed > 0)  and CS.useTeslaMapData and (CS.mapAwareSpeed or (CS.baseMapSpeedLimitMPS <2.7)):
-#    if ((CS.maxdrivespeed > 0) and CS.useTeslaMapData and (CS.mapAwareSpeed or (CS.baseMapSpeedLimitMPS <2.7)) and ((pedal_set_speed_ms-speed_limit_ms) < 46.3)):
+    if (CS.maxdrivespeed > 0) and CS.useTeslaMapData and (CS.mapAwareSpeed or (CS.baseMapSpeedLimitMPS <2.7)):
       #do we know the based speed limit?
       sl1 = 0.
       if CS.baseMapSpeedLimitMPS >= 2.7:
@@ -223,12 +224,11 @@ class PCCController():
       return pedal_set_speed_ms
 
   def reset(self, v_pid):
-  # Save the v_pid at every disengagement - to keep the nice smoothenss across drives.
+    #save the pid parameters to params file
     self.save_pid(self.LoC.pid)
-
+    
     if self.LoC and RESET_PID_ON_DISENGAGE:
       self.LoC.reset(v_pid)
-
 
   def update_stat(self, CS, enabled):
     if not self.LoC:
@@ -236,6 +236,7 @@ class PCCController():
       # Get v_id from the stored file when initiating the LoC and reset_on_disengage==false
       if (not RESET_PID_ON_DISENGAGE): 
         self.load_pid()
+
 
     can_sends = []
     if CS.pedal_interceptor_available and not CS.cstm_btns.get_button_status("pedal"):
@@ -413,14 +414,8 @@ class PCCController():
     # how much accel and break we have to do
     ####################################################################
     if PCCModes.is_selected(FollowMode(), CS.cstm_btns):
-
-      # Get v_id from the stored file, only the first activation where v_pid eq 0
-      #if (not RESET_PID_ON_DISENGAGE and self.v_pid == 0.): #no need to test for LoC - as it will be initialized first thing in the update function
-      #  self.load_pid()
-      #else:
       self.v_pid = self.calc_follow_speed_ms(CS,alca_enabled)
-
-
+      
       if mapd is not None:
         v_curve = max_v_in_mapped_curve_ms(mapd.liveMapData, self.pedal_speed_kph)
         if v_curve:
@@ -576,7 +571,7 @@ class PCCController():
         elif lead_dist_m < MIN_SAFE_DIST_M:
           new_speed_kph = MIN_PCC_V_KPH
         # In a 10 meter cruise zone, lets match the car in front 
-        elif lead_dist_m > MIN_SAFE_DIST_M and lead_dist_m < safe_dist_m + 2: # BB we might want to try this and rel_speed_kph > 0: 
+        elif safe_dist_m + 2 > lead_dist_m > MIN_SAFE_DIST_M: # BB we might want to try this and rel_speed_kph > 0: 
           min_vrel_kph_map = OrderedDict([
             # (distance in m, min allowed relative kph)
             (0.5 * safe_dist_m, 3.0),
@@ -634,7 +629,7 @@ class PCCController():
       # Don't accelerate during manual turns, curves or ALCA.
       new_speed_kph = min(new_speed_kph, self.last_speed_kph)
     #BB Last safety check. Zero if below MIN_SAFE_DIST_M
-    if (lead_dist_m > 0) and (lead_dist_m < MIN_SAFE_DIST_M) and (rel_speed_kph < 3.):
+    if (MIN_SAFE_DIST_M > lead_dist_m > 0) and (rel_speed_kph < 3.):
       new_speed_kph = MIN_PCC_V_KPH
     self.last_speed_kph = new_speed_kph
     return new_speed_kph * CV.KPH_TO_MS
@@ -705,10 +700,10 @@ def _accel_limit_multiplier(CS, lead):
   with other accel limits."""
   accel_by_speed = OrderedDict([
     # (speed m/s, decel)
-    (0.,  2.5),  #  0 MPH
-    (10., 1.5),  # 22 MPH
-    (20., 1.2),  # 45 MPH
-    (30., 0.7)]) # 67 MPH
+      (0.,  0.95),  #   0 kmh
+      (10., 0.95),  #  35 kmh
+      (20., 0.925),  #  72 kmh
+      (30., 0.875)]) # 107 kmh
   if CS.teslaModel in ["SP","SPD"]:
       accel_by_speed = OrderedDict([
         # (speed m/s, decel)

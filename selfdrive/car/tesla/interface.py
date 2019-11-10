@@ -35,8 +35,6 @@ class CarInterface():
     self.gas_pressed_prev = False
     self.brake_pressed_prev = False
     self.can_invalid_count = 0
-    self.alca = messaging.pub_sock(service_list['alcaStatus'].port)
-
     
 
     # *** init the major players ***
@@ -68,7 +66,7 @@ class CarInterface():
     # - a_ego exceeds a_target and v_ego is close to v_target
 
     # normalized max accel. Allowing max accel at low speed causes speed overshoots
-    max_accel_bp = [10, 17]    # m/s allow max accel from 61km/h
+    max_accel_bp = [10, 17]    # m/s
     max_accel_v = [0.714, 1.0] # unit of max accel
     max_accel = interp(v_ego, max_accel_bp, max_accel_v)
 
@@ -495,15 +493,6 @@ class CarInterface():
     self.gas_pressed_prev = ret.gasPressed
     self.brake_pressed_prev = self.CS.brake_pressed != 0
 
-    #pass ALCA status
-    alca_status = tesla.ALCAStatus.new_message()
-
-    alca_status.alcaEnabled = bool(self.CS.ALCA_enabled)
-    alca_status.alcaTotalSteps = int(self.CS.ALCA_total_steps)
-    alca_status.alcaDirection = int(self.CS.ALCA_direction)
-    alca_status.alcaError = bool(self.CS.ALCA_error)
-
-    self.alca.send(alca_status.to_bytes())
 
     # cast to reader so it can't be modified
     return ret.as_reader()

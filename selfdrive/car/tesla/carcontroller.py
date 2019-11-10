@@ -4,6 +4,7 @@ from common.params import Params
 from collections import namedtuple
 from common.numpy_fast import clip, interp
 from common.realtime import DT_CTRL
+from common import realtime
 from selfdrive.car.tesla import teslacan
 from selfdrive.car.tesla.values import AH, CM
 from selfdrive.can.packer import CANPacker
@@ -192,7 +193,7 @@ class CarController():
     self.prev_ldwStatus = 0
 
     self.radarVin_idx = 0
-    self.LDW_ENABLE_SPEED = 20
+    self.LDW_ENABLE_SPEED = 16
     self.should_ldw = False
     self.ldw_numb_frame_start = 0
     self.prev_changing_lanes = False
@@ -322,22 +323,24 @@ class CarController():
       if (changing_lanes and not self.prev_changing_lanes): #we have a transition from blinkers off to blinkers on, save the frame
         self.ldw_numb_frame_start = frame
         if  (CS.v_ego > self.LDW_ENABLE_SPEED):
-          CS.UE.custom_alert_message(3, "LDW Numb Starting", 150, 4)
-        #print("LDW Transition detected, frame (%d)", frame)
+          CS.UE.custom_alert_message(3, "LDW Disabled", 150, 4)
 
-      # update the previous state of the blinkers (chaning_lanes)
+        # update the previous state of the blinkers (chaning_lanes      if (self.ALCA.laneChange_enabled > 1):
+        self.ldw_numb_frame_start = frame 
+
       self.prev_changing_lanes = changing_lanes
 
       #Determine if we should have LDW or not
+      #self.should_ldw = (frame > (self.ldw_numb_frame_start + int( 50 * CS.ldwNumbPeriod))) 
       self.should_ldw = (frame > (self.ldw_numb_frame_start + int( 50 * CS.ldwNumbPeriod)) and CS.v_ego > self.LDW_ENABLE_SPEED)
 
       if self.should_ldw and self.ldw_numb_frame_start != 0:
         self.ldw_numb_frame_start = 0
-        CS.UE.custom_alert_message(3, "LDW Numb Ending", 150, 4)
+        CS.UE.custom_alert_message(2, "LDW Enabled", 150, 4)
 
     #upodate custom UI buttons and alerts
     CS.UE.update_custom_ui()
-
+      
     if (frame % 100 == 0):
       CS.cstm_btns.send_button_info()
       #read speed limit params
@@ -354,11 +357,11 @@ class CarController():
           self.speed_limit_offset = 0.
         if not self.isMetric:
           self.speed_limit_offset = self.speed_limit_offset * CV.MPH_TO_MS
-    if CS.useTeslaGPS:
+    if CS.useTeslaGPS and (frame % 10 == 0):
       if self.gpsLocationExternal is None:
         self.gpsLocationExternal = messaging.pub_sock(service_list['gpsLocationExternal'].port)
       sol = gen_solution(CS)
-      sol.logMonoTime = int(frame * DT_CTRL * 1e9)
+      sol.logMonoTime = int(realtime.sec_since_boot() * 1e9)
       self.gpsLocationExternal.send(sol.to_bytes())
 
     #get pitch/roll/yaw every 0.1 sec
@@ -368,7 +371,6 @@ class CarController():
 
     # Update statuses for custom buttons every 0.1 sec.
     if (frame % 10 == 0):
-      #self.ALCA.update_status(False) 
       self.ALCA.update_status((CS.cstm_btns.get_button_status("alca") > 0) and ((CS.enableALCA and not CS.hasTeslaIcIntegration) or (CS.hasTeslaIcIntegration and CS.alcaEnabled)))
     
     pedal_can_sends = []
@@ -397,7 +399,7 @@ class CarController():
     else:
       CS.v_cruise_pcm = max(0.,CS.v_ego * CV.MS_TO_KPH  +0.5) * speed_uom_kph
     # Get the turn signal from ALCA.
-    turn_signal_needed, self.alca_enabled = self.ALCA.update(enabled, CS, actuators)
+    turn_signal_needed, self.alca_enabled = self.ALCA.update(enabled, CS, actuators, self.alcaStateData, frame)
     apply_angle = -actuators.steerAngle  # Tesla is reversed vs OP.
     human_control,turn_signal_needed_hso = self.HSO.update_stat(self,CS, enabled, actuators, frame)
     if turn_signal_needed == 0:
@@ -744,8 +746,6 @@ class CarController():
       self.visionCurvC0 = self.curv0
       self.prev_ldwStatus = self.ldwStatus
       self.ldwStatus = 0
-      if (self.ALCA.laneChange_direction != 0) and alcaStateData.alcaError:
-        self.ALCA.stop_ALCA(CS)
       if self.alca_enabled:
         #exagerate position a little during ALCA to make lane change look smoother on IC
         if self.ALCA.laneChange_over_the_line:
@@ -753,7 +753,7 @@ class CarController():
         self.curv0 = clip(self.curv0, -3.5, 3.5)
       else:
         if self.should_ldw and (CS.enableLdw and (not CS.blinker_on) and (turn_signal_needed == 0)):
-          #self.ldw_numb_frame_start = 0 #reset frame_start for the transition
+#        if self.should_ldw and (CS.enableLdw and (not CS.blinker_on) and (CS.v_ego > 15.6) and (turn_signal_needed == 0)):
           if pp.lProb > LDW_LANE_PROBAB:
             lLaneC0 = -pp.lPoly[3]
             if abs(lLaneC0) < LDW_WARNING_2:

@@ -78,11 +78,6 @@ class LanePlanner():
     self.lane_width = self.lane_width_certainty * self.lane_width_estimate + \
                       (1 - self.lane_width_certainty) * speed_lane_width
 
-
-# Don't exit dive, set r_prob lower if the lane goes too wide (3.9 Meters+)		
-#    if abs(self.l_poly[3] - self.r_poly[3]) > (self.lane_width + 0.3):		
-#      self.r_prob = self.r_prob / interp(self.l_prob, [0, 1], [1, 3])
-
     # ALCA integration
     if self.shouldUseAlca and alca:
       self.r_poly,self.l_poly,self.r_prob,self.l_prob,self.lane_width, self.p_poly = self.ALCAMP.update(v_ego, md, np.array(self.r_poly), np.array(self.l_poly), self.r_prob, self.l_prob, self.lane_width, self.p_poly)

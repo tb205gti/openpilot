@@ -238,8 +238,8 @@ class CarState():
     self.fix1916 = False
     self.forceFingerprintTesla = False
     self.spinnerText = ""
-    self.hsoNumbPeriod = 1.1
-    self.ldwNumbPeriod = 4
+    self.hsoNumbPeriod = 1.5
+    self.ldwNumbPeriod = 1.5
     #read config file
     read_config_file(self)
     ### END OF MAIN CONFIG OPTIONS ###
@@ -522,7 +522,7 @@ class CarState():
       self.apFollowTimeInS =  1 + cp.vl["MCU_chassisControl"]["MCU_fcwSensitivity"] * 0.5
       self.keepEonOff = cp.vl["MCU_chassisControl"]["MCU_ldwEnable"] == 1
       self.alcaEnabled = cp.vl["MCU_chassisControl"]["MCU_pedalSafetyEnable"] == 1
-      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] != 1 #reverse the option - to prevent unexpected bahaviour..
+      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] != 1
 
     usu = cp.vl['MCU_gpsVehicleSpeed']["MCU_userSpeedOffsetUnits"]
     if usu == 1:
