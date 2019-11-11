@@ -35,9 +35,9 @@ static void ui_draw_infobar(UIState *s) {
   char maxspeed_str[12];
   float maxspeed = s->scene.v_cruise;
   int maxspeed_calc = maxspeed + 0.5;
-  bool is_cruise_set = (maxspeed != 0 && maxspeed != 255);
+  bool is_cruise_set = (maxspeed > 5 && maxspeed != 255);
 
-  if (is_cruise_set) {
+  if (s->scene.engaged && is_cruise_set) {
     snprintf(maxspeed_str, sizeof(maxspeed_str), "[%d] kmh", maxspeed_calc);
   } else{
     snprintf(maxspeed_str, sizeof(maxspeed_str), "%s", "[--] kmh");
