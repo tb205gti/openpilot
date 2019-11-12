@@ -201,7 +201,7 @@ class CarState():
     self.CL_MIN_V = 8.9
     self.CL_MAX_A = 20.
     # labels for buttons
-    self.btns_init = [["alca",                "ALC",                      ["MadMax", "Normal", "Calm"]],
+    self.btns_init = [["alca",                "ALC",                      [""]],
                       [ACCMode.BUTTON_NAME,   ACCMode.BUTTON_ABREVIATION, ACCMode.labels()],
                       ["dsp",               "DSP",                      ["OP","MIN","OFF","GYRO"]],
                       ["",               "",                      [""]],
@@ -240,6 +240,7 @@ class CarState():
     self.spinnerText = ""
     self.hsoNumbPeriod = 1.5
     self.ldwNumbPeriod = 1.5
+    self.hsoBlinkerExtender = 1.0
     #read config file
     read_config_file(self)
     ### END OF MAIN CONFIG OPTIONS ###

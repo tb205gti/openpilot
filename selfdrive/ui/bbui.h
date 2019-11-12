@@ -301,6 +301,20 @@ int bb_get_button_status( UIState *s, char *btn_name) {
 }
 
 void bb_draw_button( UIState *s, int btn_id) {
+
+/*
+
+0 = ALCA
+1 = ACCMode/PCCMode
+2 = Display
+3 = empty
+4 = MSG
+5 = Sound
+*/
+
+if (btn_id == 1 || btn_id == 2 || btn_id == 4 || btn_id == 5){ //don't draw the OP display button - we do not need it.
+  return;
+}
   const UIScene *scene = &s->scene;
 
   int viz_button_x = 0;
@@ -328,17 +342,16 @@ void bb_draw_button( UIState *s, int btn_id) {
     viz_button_x = scene->ui_viz_rx + scene->ui_viz_rw - (bdr_s*2) -dx2;
     viz_button_x -= (6-btn_id) * delta_x ;
     viz_button_y += (btn_id-3) * delta_y + dy;
-    
+
   } else {
     viz_button_x = scene->ui_viz_rx + (bdr_s*2) + dx1;
     viz_button_x +=  (btn_id) * delta_x;
     viz_button_y += btn_id * delta_y + dy;
   }
-  
 
   btn_text = s->b.btns[btn_id].btn_label;
   btn_text2 = s->b.btns[btn_id].btn_label2;
-  
+
   if (strcmp(btn_text,"")==0) {
     s->b.btns_r[btn_id] = 0;
   } else {
@@ -349,12 +362,11 @@ void bb_draw_button( UIState *s, int btn_id) {
   if (s->b.btns_r[btn_id] == 0) {
     return;
   }
-  
+
   nvgBeginPath(s->vg);
   nvgRoundedRect(s->vg, viz_button_x, viz_button_y, viz_button_w, viz_button_h, 80);
   nvgStrokeWidth(s->vg, 12);
 
-  
   if (s->b.btns_status[btn_id] ==0) {
     //disabled - red
     nvgStrokeColor(s->vg, nvgRGBA(255, 0, 0, 200));
