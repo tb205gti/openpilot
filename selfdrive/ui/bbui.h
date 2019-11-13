@@ -301,6 +301,19 @@ int bb_get_button_status( UIState *s, char *btn_name) {
 }
 
 void bb_draw_button( UIState *s, int btn_id) {
+/*
+0 = ALCA
+1 = ACCMode/PCCMode
+2 = Display
+3 = empty
+4 = MSG
+5 = Sound
+*/
+
+/*if (btn_id == 1 || btn_id == 2 || btn_id == 4 || btn_id == 5){ //don't draw the OP display button - we do not need it.
+  return;
+}*/
+
   const UIScene *scene = &s->scene;
 
   int viz_button_x = 0;
@@ -1159,8 +1172,8 @@ void bb_ui_draw_UI( UIState *s) {
 	  const int bb_dmr_w = 180;
 	  const int bb_dmr_x = scene->ui_viz_rx + scene->ui_viz_rw - bb_dmr_w - (bdr_s*2) ; 
 	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
-    bb_ui_draw_measures_left(s,bb_dml_x, bb_dml_y, bb_dml_w );
-    bb_ui_draw_measures_right(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
+//    bb_ui_draw_measures_left(s,bb_dml_x, bb_dml_y, bb_dml_w );
+//    bb_ui_draw_measures_right(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
     bb_ui_draw_logo(s);

@@ -66,7 +66,7 @@ class CarInterface():
     # - a_ego exceeds a_target and v_ego is close to v_target
 
     # normalized max accel. Allowing max accel at low speed causes speed overshoots
-    max_accel_bp = [10, 20]    # m/s
+    max_accel_bp = [10, 17]    # m/s
     max_accel_v = [0.714, 1.0] # unit of max accel
     max_accel = interp(v_ego, max_accel_bp, max_accel_v)
 

@@ -374,6 +374,8 @@ def thermald_thread():
     usb_power_prev = usb_power
     fw_version_match_prev = fw_version_match
 
+    if (count % int(10) == 0):
+      print('BatteryLevel {} - BatteryCurrent: {} A'.format(msg.thermal.batteryPercent, (msg.thermal.batteryCurrent/1000000)*-1 ))
     #print(msg)
 
     # report to server once per minute

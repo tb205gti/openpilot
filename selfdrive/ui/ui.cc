@@ -105,8 +105,8 @@ const uint8_t alert_colors[][4] = {
 
 const int alert_sizes[] = {
   [ALERTSIZE_NONE] = 0,
-  [ALERTSIZE_SMALL] = 241,
-  [ALERTSIZE_MID] = 390,
+  [ALERTSIZE_SMALL] = 141,
+  [ALERTSIZE_MID] = 290,
   [ALERTSIZE_FULL] = vwp_h,
 };
 
@@ -347,6 +347,8 @@ static void set_awake(UIState *s, bool awake) {
 
 #include "dashcam.h"
 #include "bbui.h"
+#include "tbui.h"
+
 
 static void set_volume(UIState *s, int volume) {
   char volume_change_cmd[64];
@@ -1287,6 +1289,7 @@ static void ui_draw_vision_speedlimit(UIState *s) {
 }
 
 static void ui_draw_vision_speed(UIState *s) {
+  return; //we do not want that stuff
   if (s->b.tri_state_switch == 3) {
     return;
   }
@@ -1448,7 +1451,7 @@ static void ui_draw_vision_header(UIState *s) {
   if (s->b.tri_state_switch == 2) {
     ui_draw_vision_speedlimit(s);
   }
-  ui_draw_vision_speed(s);
+  //ui_draw_vision_speed(s);
   ui_draw_vision_event(s);
 }
 
@@ -1465,6 +1468,9 @@ static void ui_draw_vision_footer(UIState *s) {
 #ifdef SHOW_SPEEDLIMIT
   // ui_draw_vision_map(s);
 #endif
+
+  ui_draw_infobar(s);
+
 }
 
 static void ui_draw_vision_alert(UIState *s, int va_size, int va_color,
