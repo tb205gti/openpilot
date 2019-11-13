@@ -270,7 +270,7 @@ class ConfigFile():
       into.hsoNumbPeriod, didUpdate = self.read_config_entry(
         config, configr, prev_file_contents, section = pref_section,
         entry = 'hso_numb_period', entry_type = float,
-        default_value = 1.0,
+        default_value = 1.5,
         comment = 'Period to delay (in seconds) the reengagement of LKAS after human turn signal has been used. Time starts when the turn signal is turned on.'
       )
       file_changed |= didUpdate
@@ -288,7 +288,7 @@ class ConfigFile():
       into.ldwNumbPeriod, didUpdate = self.read_config_entry(
         config, configr, prev_file_contents, section = pref_section,
         entry = 'ldw_numb_period', entry_type = float,
-        default_value = 4.0,
+        default_value = 1.5,
         comment = 'Period to delay (in seconds) the LDW warnings after human turn signal has been used. Time starts when the turn signal is turned on.'
       )
       file_changed |= didUpdate

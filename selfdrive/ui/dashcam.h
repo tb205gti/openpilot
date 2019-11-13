@@ -235,14 +235,14 @@ static void screen_draw_button(UIState *s, int touch_x, int touch_y) {
   // Set button to bottom left of screen
   if (s->vision_connected && s->plus_state == 0) {
 
-    //if (captureState == CAPTURE_STATE_CAPTURING) {
-    //  draw_lock_button(s);
-    //}
+    if (captureState == CAPTURE_STATE_CAPTURING) {
+      draw_lock_button(s);
+    }
 
     int btn_w = 150;
     int btn_h = 150;
     int btn_x = 1920 - btn_w;
-    int btn_y = 1080 - btn_h - 30;
+    int btn_y = 1080 - btn_h;
     nvgBeginPath(s->vg);
       nvgRoundedRect(s->vg, btn_x-110, btn_y-45, btn_w, btn_h, 100);
       nvgStrokeColor(s->vg, nvgRGBA(255,255,255,80));
@@ -300,9 +300,9 @@ void dashcam( UIState *s, int touch_x, int touch_y ) {
   if (screen_button_clicked(touch_x,touch_y)) {
     screen_toggle_record_state();
   }
-  //if (screen_lock_button_clicked(touch_x,touch_y,lock_button)) {
-  //  screen_toggle_lock();
-  //}
+  if (screen_lock_button_clicked(touch_x,touch_y,lock_button)) {
+    screen_toggle_lock();
+  }
   if (!s->vision_connected) {
     // Assume car is not in drive so stop recording
     stop_capture();

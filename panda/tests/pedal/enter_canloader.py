@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import sys
 import time
 import struct
 import argparse
@@ -24,6 +23,7 @@ class CanHandle(object):
       ret = self.p.isotp_recv(2, 0, sendaddr=1)
     finally:
       signal.alarm(0)
+
     # "R:",ret.encode("hex")
     return ret
 

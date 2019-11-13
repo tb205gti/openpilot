@@ -278,10 +278,10 @@ bool bb_handle_ui_touch( UIState *s, int touch_x, int touch_y) {
 
         uint8_t buf[4096];
         ssize_t rs = capn_write_mem(&c, buf, sizeof(buf), 0);
-
+        char* data = (char*) buf;
         capn_free(&c);
         
-        zmq_send(s->b.uiButtonStatus_sock_raw, buf,rs,0);
+        s->b.uiButtonStatus_sock->send(data,rs);
         
         return true;
       }
@@ -301,20 +301,6 @@ int bb_get_button_status( UIState *s, char *btn_name) {
 }
 
 void bb_draw_button( UIState *s, int btn_id) {
-
-/*
-
-0 = ALCA
-1 = ACCMode/PCCMode
-2 = Display
-3 = empty
-4 = MSG
-5 = Sound
-*/
-
-if (btn_id == 1 || btn_id == 2 || btn_id == 4 || btn_id == 5){ //don't draw the OP display button - we do not need it.
-  return;
-}
   const UIScene *scene = &s->scene;
 
   int viz_button_x = 0;
@@ -342,16 +328,17 @@ if (btn_id == 1 || btn_id == 2 || btn_id == 4 || btn_id == 5){ //don't draw the 
     viz_button_x = scene->ui_viz_rx + scene->ui_viz_rw - (bdr_s*2) -dx2;
     viz_button_x -= (6-btn_id) * delta_x ;
     viz_button_y += (btn_id-3) * delta_y + dy;
-
+    
   } else {
     viz_button_x = scene->ui_viz_rx + (bdr_s*2) + dx1;
     viz_button_x +=  (btn_id) * delta_x;
     viz_button_y += btn_id * delta_y + dy;
   }
+  
 
   btn_text = s->b.btns[btn_id].btn_label;
   btn_text2 = s->b.btns[btn_id].btn_label2;
-
+  
   if (strcmp(btn_text,"")==0) {
     s->b.btns_r[btn_id] = 0;
   } else {
@@ -362,16 +349,17 @@ if (btn_id == 1 || btn_id == 2 || btn_id == 4 || btn_id == 5){ //don't draw the 
   if (s->b.btns_r[btn_id] == 0) {
     return;
   }
-
+  
   nvgBeginPath(s->vg);
   nvgRoundedRect(s->vg, viz_button_x, viz_button_y, viz_button_w, viz_button_h, 80);
   nvgStrokeWidth(s->vg, 12);
 
+  
   if (s->b.btns_status[btn_id] ==0) {
     //disabled - red
     nvgStrokeColor(s->vg, nvgRGBA(255, 0, 0, 200));
     if (strcmp(btn_text2,"")==0) {
-      btn_text2 = "Off";
+      btn_text2 = (char *)"Off";
     }
   } else
   if (s->b.btns_status[btn_id] ==1) {
@@ -379,14 +367,14 @@ if (btn_id == 1 || btn_id == 2 || btn_id == 4 || btn_id == 5){ //don't draw the 
     nvgStrokeColor(s->vg, nvgRGBA(255,255,255,200));
     nvgStrokeWidth(s->vg, 4);
     if (strcmp(btn_text2,"")==0) {
-      btn_text2 = "Ready";
+      btn_text2 = (char *)"Ready";
     }
   } else
   if (s->b.btns_status[btn_id] ==2) {
     //active - green
     nvgStrokeColor(s->vg, nvgRGBA(28, 204,98,200));
     if (strcmp(btn_text2,"")==0) {
-      btn_text2 = "Active";
+      btn_text2 = (char *)"Active";
     }
   } else
   if (s->b.btns_status[btn_id] ==9) {
@@ -394,13 +382,13 @@ if (btn_id == 1 || btn_id == 2 || btn_id == 4 || btn_id == 5){ //don't draw the 
     nvgStrokeColor(s->vg, nvgRGBA(200,200,200,40));
     nvgStrokeWidth(s->vg, 4);
     if (strcmp(btn_text2,"")==0) {
-      btn_text2 = "";
+      btn_text2 = (char *)"";
     }
   } else {
     //others - orange
     nvgStrokeColor(s->vg, nvgRGBA(255, 188, 3, 200));
     if (strcmp(btn_text2,"")==0) {
-      btn_text2 = "Alert";
+      btn_text2 = (char *)"Alert";
     }
   }
 
@@ -426,7 +414,7 @@ void bb_draw_buttons( UIState *s) {
 
 void bb_ui_draw_custom_alert( UIState *s) {
     if ((strlen(s->b.custom_message) > 0) && (strlen(s->scene.alert_text1)==0)){
-      if ((!((bb_get_button_status(s,"msg") == 0) && (s->b.custom_message_status<=3))) && (s->vision_connected == true)) {
+      if ((!((bb_get_button_status(s,(char *)"msg") == 0) && (s->b.custom_message_status<=3))) && (s->vision_connected == true)) {
         bb_ui_draw_vision_alert(s, ALERTSIZE_SMALL, s->b.custom_message_status,
                               s->b.custom_message,"");
       }
@@ -472,7 +460,7 @@ void bb_ui_draw_measures_left( UIState *s, int bb_x, int bb_y, int bb_w ) {
 	}
 
    //add battery temperature
-	if (false) {
+	if (true) {
 		char val_str[16];
 		char uom_str[6];
 		NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
@@ -497,7 +485,7 @@ void bb_ui_draw_measures_left( UIState *s, int bb_x, int bb_y, int bb_w ) {
 	}
 	
 	//add grey panda GPS accuracy
-	if (false) {
+	if (true) {
 		char val_str[16];
 		char uom_str[3];
 		NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
@@ -528,7 +516,7 @@ void bb_ui_draw_measures_left( UIState *s, int bb_x, int bb_y, int bb_w ) {
 		bb_ry = bb_y + bb_h;
 	}
   //add free space - from bthaler1
-	if (false) {
+	if (true) {
 		char val_str[16];
 		char uom_str[3];
 		NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
@@ -691,7 +679,7 @@ void bb_ui_draw_measures_right( UIState *s, int bb_x, int bb_y, int bb_w ) {
 	int bb_uom_dx =  (int)(bb_w /2 - uom_fontSize*2.5) ;
 	
 	//add visual radar relative distance
-	if (false) {
+	if (true) {
 		char val_str[16];
 		char uom_str[6];
 		NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
@@ -726,7 +714,7 @@ void bb_ui_draw_measures_right( UIState *s, int bb_x, int bb_y, int bb_w ) {
 	}
 	
 	//add visual radar relative speed
-	if (false) {
+	if (true) {
 		char val_str[16];
 		char uom_str[6];
 		NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
@@ -761,7 +749,7 @@ void bb_ui_draw_measures_right( UIState *s, int bb_x, int bb_y, int bb_w ) {
 	}
 	
 	//add  steering angle
-	if (false) {
+	if (true) {
 		char val_str[16];
 		char uom_str[6];
 		NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
@@ -784,39 +772,8 @@ void bb_ui_draw_measures_right( UIState *s, int bb_x, int bb_y, int bb_w ) {
 		bb_ry = bb_y + bb_h;
 	}
 	
- //add grey panda GPS accuracy
-        if (true) {
-                char val_str[16];
-                char uom_str[3];
-                NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
-                //show red/orange if gps accuracy is high
-            if(s->b.gpsAccuracy > 0.59) {
-               val_color = nvgRGBA(255, 188, 3, 200);
-            }
-            if(s->b.gpsAccuracy > 0.8) {
-               val_color = nvgRGBA(255, 0, 0, 200);
-            }
-
-
-                // gps accuracy is always in meters
-                if (true) {
-                         snprintf(val_str, sizeof(val_str), "%d", (int)(s->b.gpsAccuracy*100.0));
-                } else {
-                         snprintf(val_str, sizeof(val_str), "%.1f", s->b.gpsAccuracy * 3.28084 * 12);
-                }
-                if (true) {
-                        snprintf(uom_str, sizeof(uom_str), "cm");;
-                } else {
-                        snprintf(uom_str, sizeof(uom_str), "in");
-                }
-                bb_h +=bb_ui_draw_measure(s,  val_str, uom_str, "GPS PREC", 
-                                bb_rx, bb_ry, bb_uom_dx,
-                                val_color, lab_color, uom_color, 
-                                value_fontSize, label_fontSize, uom_fontSize );
-                bb_ry = bb_y + bb_h;
-        }
 	//add  desired steering angle
-	if (false) {
+	if (true) {
 		char val_str[16];
 		char uom_str[6];
 		NVGcolor val_color = nvgRGBA(255, 255, 255, 200);
@@ -1175,13 +1132,17 @@ void bb_ui_read_triState_switch( UIState *s) {
     if (strcmp(s->b.btns[2].btn_label2,"GYRO")==0) {
       s->b.tri_state_switch = 4;
     }
-    int i = bb_get_button_status(s,"dsp");
+    int i = bb_get_button_status(s,(char *)"dsp");
     if (i==9) {
       s->b.keepEonOff = true;
-      s->awake_timeout = min(s->awake_timeout,3*30);
+      if (s->awake_timeout > 3*30) {
+        s->awake_timeout = 3*30;
+      }
     } else {
       s->b.keepEonOff = false;
-      s->awake_timeout = min(s->awake_timeout,30*30);
+      if (s->awake_timeout > 30*30) {
+        s->awake_timeout = 30*30;
+      }
     }
   }
 }
@@ -1198,9 +1159,11 @@ void bb_ui_draw_UI( UIState *s) {
 	  const int bb_dmr_w = 180;
 	  const int bb_dmr_x = scene->ui_viz_rx + scene->ui_viz_rw - bb_dmr_w - (bdr_s*2) ; 
 	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
-    //bb_ui_draw_measures_right(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
+    bb_ui_draw_measures_left(s,bb_dml_x, bb_dml_y, bb_dml_w );
+    bb_ui_draw_measures_right(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
+    bb_ui_draw_logo(s);
 	 }
    if (s->b.tri_state_switch ==2) {
 	 	const UIScene *scene = &s->scene;
@@ -1213,6 +1176,7 @@ void bb_ui_draw_UI( UIState *s) {
 	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
+    bb_ui_draw_logo(s);
 	 }
 	 if (s->b.tri_state_switch ==3) {
     //we now use the state 3 for minimalistic data alerts
@@ -1261,34 +1225,24 @@ void bb_ui_init(UIState *s) {
     s->b.touch_last_y =0;
     s->b.touch_last_width = s->scene.ui_viz_rw;
 
+    s->b.ctx = Context::create();
+
     //BB Define CAPNP sock
-    s->b.uiButtonInfo_sock = zsock_new_sub(">tcp://127.0.0.1:8201", "");
-    assert(s->b.uiButtonInfo_sock);
-    s->b.uiButtonInfo_sock_raw = zsock_resolve(s->b.uiButtonInfo_sock);
-
-    s->b.uiCustomAlert_sock = zsock_new_sub(">tcp://127.0.0.1:8202", "");
-    assert(s->b.uiCustomAlert_sock);
-    s->b.uiCustomAlert_sock_raw = zsock_resolve(s->b.uiCustomAlert_sock);
-
-    s->b.uiSetCar_sock = zsock_new_sub(">tcp://127.0.0.1:8203", "");
-    assert(s->b.uiSetCar_sock);
-    s->b.uiSetCar_sock_raw = zsock_resolve(s->b.uiSetCar_sock);
-
-    s->b.uiPlaySound_sock = zsock_new_sub(">tcp://127.0.0.1:8205", "");
-    assert(s->b.uiPlaySound_sock);
-    s->b.uiPlaySound_sock_raw = zsock_resolve(s->b.uiPlaySound_sock);
-
-    s->b.uiButtonStatus_sock = zsock_new_pub("@tcp://127.0.0.1:8204");
-    assert(s->b.uiButtonStatus_sock);
-    s->b.uiButtonStatus_sock_raw = zsock_resolve(s->b.uiButtonStatus_sock);
-
-    s->b.gps_sock = zsock_new_sub(">tcp://127.0.0.1:8032","");
-    assert(s->b.gps_sock);
-    s->b.gps_sock_raw = zsock_resolve(s->b.gps_sock);
-
-    s->b.uiGyroInfo_sock = zsock_new_sub(">tcp://127.0.0.1:8207", "");
-    assert(s->b.uiGyroInfo_sock);
-    s->b.uiGyroInfo_sock_raw = zsock_resolve(s->b.uiGyroInfo_sock);
+    s->b.uiButtonInfo_sock = SubSocket::create(s->b.ctx, "uiButtonInfo"); //zsock_new_sub(">tcp://127.0.0.1:8201", "");
+    s->b.uiCustomAlert_sock = SubSocket::create(s->b.ctx, "uiCustomAlert"); //zsock_new_sub(">tcp://127.0.0.1:8202", "");
+    s->b.uiSetCar_sock = SubSocket::create(s->b.ctx, "uiSetCar"); //zsock_new_sub(">tcp://127.0.0.1:8203", "");
+    s->b.uiPlaySound_sock = SubSocket::create(s->b.ctx, "uiPlaySound"); //zsock_new_sub(">tcp://127.0.0.1:8205", "");
+    s->b.uiButtonStatus_sock = PubSocket::create(s->b.ctx, "uiButtonStatus"); //zsock_new_pub("@tcp://127.0.0.1:8204");
+    s->b.gps_sock = SubSocket::create(s->b.ctx, "gpsLocationExternal"); //zsock_new_sub(">tcp://127.0.0.1:8032","");
+    s->b.uiGyroInfo_sock = SubSocket::create(s->b.ctx, "uiGyroInfo"); //zsock_new_sub(">tcp://127.0.0.1:8207", "");
+    s->b.poller = Poller::create({
+                              s->b.uiButtonInfo_sock,
+                              s->b.uiCustomAlert_sock,
+                              s->b.uiSetCar_sock,
+                              s->b.uiPlaySound_sock,
+                              s->b.gps_sock,
+                              s->b.uiGyroInfo_sock
+                             });
 
     //BB Load Images
     s->b.img_logo = nvgCreateImage(s->vg, "../assets/img_spinner_comma.png", 1);
@@ -1314,47 +1268,24 @@ void bb_ui_set_car( UIState *s, char *model, char *folder) {
 }
 
 void  bb_ui_poll_update( UIState *s) {
+
     int err;
-    zmq_pollitem_t bb_polls[8] = {{0}};
-    bb_polls[0].socket = s->b.uiButtonInfo_sock_raw;
-    bb_polls[0].events = ZMQ_POLLIN;
-    bb_polls[1].socket = s->b.uiCustomAlert_sock_raw;
-    bb_polls[1].events = ZMQ_POLLIN;
-    bb_polls[2].socket = s->b.uiSetCar_sock_raw;
-    bb_polls[2].events = ZMQ_POLLIN;
-    bb_polls[3].socket = s->b.uiPlaySound_sock_raw;
-    bb_polls[3].events = ZMQ_POLLIN;
-    bb_polls[4].socket = s->b.gps_sock_raw;
-    bb_polls[4].events = ZMQ_POLLIN;
-    bb_polls[5].socket = s->b.uiGyroInfo_sock_raw;
-    bb_polls[5].events = ZMQ_POLLIN;
     
     //check tri-state switch
     bb_ui_read_triState_switch(s);
     
     while (true) {
-        
+      auto polls = s->b.poller->poll(0);
+      if (polls.size() == 0)
+        return;
 
-        int ret = zmq_poll(bb_polls, 6, 0);
-        if (ret < 0) {
-          LOGW("bb poll failed (%d)", ret);
-          break;
-        }
-        if (ret == 0) {
-          //LOGW("poll empty");
-          break;
-        }
+      for (auto sock : polls) {
+        Message * msg = sock->receive();
 
-        if (bb_polls[0].revents) {
+        if (sock == s->b.uiButtonInfo_sock) {
           //button info socket
-          zmq_msg_t msg;
-          err = zmq_msg_init(&msg);
-          assert(err == 0);
-          err = zmq_msg_recv(&msg, s->b.uiButtonInfo_sock_raw, 0);
-          assert(err >= 0);
-
           struct capn ctx;
-          capn_init_mem(&ctx, zmq_msg_data(&msg), zmq_msg_size(&msg), 0);
+          capn_init_mem(&ctx, (uint8_t*)msg->getData(), msg->getSize(), 0);
 
           cereal_UIButtonInfo_ptr stp;
           stp.p = capn_getp(capn_root(&ctx), 0, 1);
@@ -1367,20 +1298,12 @@ void  bb_ui_poll_update( UIState *s) {
           strcpy(s->b.btns[id].btn_label, (char *)datad.btnLabel.str);
           strcpy(s->b.btns[id].btn_label2, (char *)datad.btnLabel2.str);
           s->b.btns_status[id] = datad.btnStatus;
-          
           capn_free(&ctx);
-          zmq_msg_close(&msg);
         }  
-        if (bb_polls[1].revents) {
+        if (sock == s->b.uiCustomAlert_sock) {
           //custom alert socket
-          zmq_msg_t msg;
-          err = zmq_msg_init(&msg);
-          assert(err == 0);
-          err = zmq_msg_recv(&msg, s->b.uiCustomAlert_sock_raw, 0);
-          assert(err >= 0);
-
           struct capn ctx;
-          capn_init_mem(&ctx, zmq_msg_data(&msg), zmq_msg_size(&msg), 0);
+          capn_init_mem(&ctx, (uint8_t*)msg->getData(), msg->getSize(), 0);
 
           cereal_UICustomAlert_ptr stp;
           stp.p = capn_getp(capn_root(&ctx), 0, 1);
@@ -1391,7 +1314,7 @@ void  bb_ui_poll_update( UIState *s) {
           s->b.custom_message_status = datad.caStatus;
 
           if ((strlen(s->b.custom_message) > 0) && (strlen(s->scene.alert_text1)==0)){
-            if ((!((bb_get_button_status(s,"msg") == 0) && (s->b.custom_message_status<=3))) && (s->vision_connected == true)) {
+            if ((!((bb_get_button_status(s,(char *)"msg") == 0) && (s->b.custom_message_status<=3))) && (s->vision_connected == true)) {
               set_awake(s, true);
             }
           }
@@ -1401,20 +1324,13 @@ void  bb_ui_poll_update( UIState *s) {
           }
           
           capn_free(&ctx);
-          zmq_msg_close(&msg);
           // wakeup bg thread since status changed
           pthread_cond_signal(&s->bg_cond);
         }  
-        if (bb_polls[2].revents) {
+        if (sock == s->b.uiSetCar_sock) {
           //set car model socket
-          zmq_msg_t msg;
-          err = zmq_msg_init(&msg);
-          assert(err == 0);
-          err = zmq_msg_recv(&msg, s->b.uiSetCar_sock_raw, 0);
-          assert(err >= 0);
-
           struct capn ctx;
-          capn_init_mem(&ctx, zmq_msg_data(&msg), zmq_msg_size(&msg), 0);
+          capn_init_mem(&ctx, (uint8_t*)msg->getData(), msg->getSize(), 0);
 
           cereal_UISetCar_ptr stp;
           stp.p = capn_getp(capn_root(&ctx), 0, 1);
@@ -1451,18 +1367,11 @@ void  bb_ui_poll_update( UIState *s) {
             s->b.icShowLogo = false;
           }
           capn_free(&ctx);
-          zmq_msg_close(&msg);
         }  
-        if (bb_polls[3].revents) {
+        if (sock == s->b.uiPlaySound_sock) {
           // play sound socket
-          zmq_msg_t msg;
-          err = zmq_msg_init(&msg);
-          assert(err == 0);
-          err = zmq_msg_recv(&msg, s->b.uiPlaySound_sock_raw, 0);
-          assert(err >= 0);
-
           struct capn ctx;
-          capn_init_mem(&ctx, zmq_msg_data(&msg), zmq_msg_size(&msg), 0);
+          capn_init_mem(&ctx, (uint8_t*)msg->getData(), msg->getSize(), 0);
 
           cereal_UIPlaySound_ptr stp;
           stp.p = capn_getp(capn_root(&ctx), 0, 1);
@@ -1473,18 +1382,11 @@ void  bb_ui_poll_update( UIState *s) {
           // bb_ui_play_sound(s,snd);
           
           capn_free(&ctx);
-          zmq_msg_close(&msg);
         } 
-        if (bb_polls[4].revents) {
+        if (sock == s->b.gps_sock) {
             // gps socket
-            zmq_msg_t msg;
-            err = zmq_msg_init(&msg);
-            assert(err == 0);
-            err = zmq_msg_recv(&msg, s->b.gps_sock_raw, 0);
-            assert(err >= 0);
-
             struct capn ctx;
-            capn_init_mem(&ctx, zmq_msg_data(&msg), zmq_msg_size(&msg), 0);
+            capn_init_mem(&ctx, (uint8_t*)msg->getData(), msg->getSize(), 0);
 
             cereal_Event_ptr eventp;
             eventp.p = capn_getp(capn_root(&ctx), 0, 1);
@@ -1504,18 +1406,11 @@ void  bb_ui_poll_update( UIState *s) {
                 s->b.gpsAccuracy=99.8;
             }
             capn_free(&ctx);
-            zmq_msg_close(&msg);
         }
-        if (bb_polls[5].revents) {
+        if (sock == s->b.uiGyroInfo_sock) {
           //gyro info socket
-          zmq_msg_t msg;
-          err = zmq_msg_init(&msg);
-          assert(err == 0);
-          err = zmq_msg_recv(&msg, s->b.uiGyroInfo_sock_raw, 0);
-          assert(err >= 0);
-
           struct capn ctx;
-          capn_init_mem(&ctx, zmq_msg_data(&msg), zmq_msg_size(&msg), 0);
+          capn_init_mem(&ctx, (uint8_t*)msg->getData(), msg->getSize(), 0);
 
           cereal_UIGyroInfo_ptr stp;
           stp.p = capn_getp(capn_root(&ctx), 0, 1);
@@ -1532,9 +1427,9 @@ void  bb_ui_poll_update( UIState *s) {
           s->b.gyroYaw = datad.gyroYaw;
           
           capn_free(&ctx);
-          zmq_msg_close(&msg);
         }
-            
+        delete msg; 
+      }  
     }
 }
 
