@@ -7,7 +7,6 @@ venv/
 .vscode
 model2.png
 a.out
-
 *.DSYM
 *.d
 *.pyc
@@ -24,7 +23,10 @@ a.out
 *.vcd
 config.json
 clcache
-
+launch_chffrplus.sh
+.vscode/*.json
+selfdrive/visiond/visiond
+.vscode/
 board/obj/
 selfdrive/boardd/boardd
 selfdrive/logcatd/logcatd
@@ -37,9 +39,20 @@ selfdrive/loggerd/loggerd
 selfdrive/sensord/gpsd
 selfdrive/sensord/sensord
 /src/
-
 one
+.vscode/*.json
+./launch_chffrplus.sh
 openpilot
 notebooks
 xx
 
+<<<<<<< HEAD
+/selfdrive/tinklad/params
+/selfdrive/tinklad/bb_openpilot.cfg
+/selfdrive/tinklad/tinklad-cache
+/selfdrive/tinklad/bb_openpilot_config.cfg
+=======
+.coverage*
+htmlcov
+
+>>>>>>> d4eb5a6eafdd4803d09e6f3963918216cca5a81f
