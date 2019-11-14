@@ -20,7 +20,7 @@ static void ui_draw_infobar(UIState *s) {
   struct tm tm = *localtime(&t);
 
   char spd[9];
-  snprintf(spd, sizeof(spd), "%i kmh", (int) (s->scene.v_ego * 3.6 + 0.5));
+  snprintf(spd, sizeof(spd), "%i ", (int) (s->scene.v_ego * 3.6 + 0.5));
 
   char ang_steer[9];
   snprintf(ang_steer, sizeof(ang_steer), "%s%03.1f°", s->b.angleSteers < 0? "-" : "+", fabs(s->b.angleSteers));
@@ -29,7 +29,7 @@ static void ui_draw_infobar(UIState *s) {
   if (s->scene.lead_status) {
     snprintf(lead_dist, sizeof(lead_dist), "%05.2fm", s->scene.lead_d_rel);
   } else {
-    snprintf(lead_dist, sizeof(lead_dist), "%7s", "N/A");
+    snprintf(lead_dist, sizeof(lead_dist), "%3s", "N/A");
   }
 
   char maxspeed_str[12];
@@ -38,9 +38,9 @@ static void ui_draw_infobar(UIState *s) {
   bool is_cruise_set = (maxspeed > 5 && maxspeed != 255);
 
   if (s->scene.engaged && is_cruise_set) {
-    snprintf(maxspeed_str, sizeof(maxspeed_str), "[%d]", maxspeed_calc);
+    snprintf(maxspeed_str, sizeof(maxspeed_str), "(%d) Kmh", maxspeed_calc);
   } else{
-    snprintf(maxspeed_str, sizeof(maxspeed_str), "%s", "[--]");
+    snprintf(maxspeed_str, sizeof(maxspeed_str), "%s", "(--) Kmh");
   }
 
   snprintf(

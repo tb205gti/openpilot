@@ -239,28 +239,28 @@ static void screen_draw_button(UIState *s, int touch_x, int touch_y) {
     //  draw_lock_button(s);
     //}
 
-    int btn_w = 150;
-    int btn_h = 150;
+    int btn_w = 140;
+    int btn_h = 140;
     int btn_x = 1920 - btn_w;
     int btn_y = 1080 - btn_h - 30;
     nvgBeginPath(s->vg);
-      nvgRoundedRect(s->vg, btn_x-110, btn_y-45, btn_w, btn_h, 100);
-      nvgStrokeColor(s->vg, nvgRGBA(255,255,255,80));
-      nvgStrokeWidth(s->vg, 6);
+      nvgRoundedRect(s->vg, btn_x-110, btn_y-45, btn_w, btn_h, 80);
+      nvgStrokeColor(s->vg, nvgRGBA(255,255,255,200));
+      nvgStrokeWidth(s->vg, 8);
       nvgStroke(s->vg);
 
-      nvgFontSize(s->vg, 70);
+      nvgFontSize(s->vg, 60);
 
       if (captureState == CAPTURE_STATE_CAPTURING) {
-        NVGcolor fillColor = nvgRGBA(255,0,0,150);
+        NVGcolor fillColor = nvgRGBA(255,0,0,100);
         nvgFillColor(s->vg, fillColor);
         nvgFill(s->vg);
-        nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
+        nvgFillColor(s->vg, nvgRGBA(255,255,255,80));
       }
       else {
         nvgFillColor(s->vg, nvgRGBA(255, 255, 255, 200));
       }
-      nvgText(s->vg,btn_x-88,btn_y+50,"REC",NULL);
+      nvgText(s->vg,btn_x-70,btn_y+45,"REC",NULL);
   }
 
   if (captureState == CAPTURE_STATE_CAPTURING) {

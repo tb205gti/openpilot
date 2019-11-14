@@ -319,7 +319,7 @@ void bb_draw_button( UIState *s, int btn_id) {
   const UIScene *scene = &s->scene;
 
   int viz_button_x = 0;
-  int viz_button_y = (box_y + (bdr_s*1.5)) + 20;
+  int viz_button_y = (box_y + (bdr_s*1.5)) + 10;
   int viz_button_w = 140;
   int viz_button_h = 140;
 
@@ -327,7 +327,7 @@ void bb_draw_button( UIState *s, int btn_id) {
   
   int delta_x = viz_button_w * 1.1;
   int delta_y = 0;
-  int dx1 = 50;
+  int dx1 = 40;
   int dx2 = 190;
   int dy = 0;
 
