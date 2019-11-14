@@ -7,7 +7,7 @@ vec3 bb_car_space_to_full_frame(const  UIState *s, vec4 car_space_projective) {
   const UIScene *scene = &s->scene;
 
   // We'll call the car space point p.
-  // First project into normalized image coordinates with the extrinsics matrix.
+ // First project into normalized image coordinates with the extrinsics matrix.
   const vec4 Ep4 = matvecmul(scene->extrinsic_matrix, car_space_projective);
 
   // The last entry is zero because of how we store E (to use matvecmul).
@@ -309,10 +309,12 @@ void bb_draw_button( UIState *s, int btn_id) {
 4 = MSG
 5 = Sound
 */
+  int btn_removed [6] = {0,0,1,0,1,1};
+  int btn_disabled [6] = {1,1,1,1,1,1};
 
-/*if (btn_id == 1 || btn_id == 2 || btn_id == 4 || btn_id == 5){ //don't draw the OP display button - we do not need it.
-  return;
-}*/
+  if (btn_removed[btn_id] == 1){
+    return;
+  }
 
   const UIScene *scene = &s->scene;
 
@@ -325,7 +327,7 @@ void bb_draw_button( UIState *s, int btn_id) {
   
   int delta_x = viz_button_w * 1.1;
   int delta_y = 0;
-  int dx1 = 200;
+  int dx1 = 50;
   int dx2 = 190;
   int dy = 0;
 
@@ -347,35 +349,43 @@ void bb_draw_button( UIState *s, int btn_id) {
     viz_button_x +=  (btn_id) * delta_x;
     viz_button_y += btn_id * delta_y + dy;
   }
-  
+
 
   btn_text = s->b.btns[btn_id].btn_label;
   btn_text2 = s->b.btns[btn_id].btn_label2;
-  
+
   if (strcmp(btn_text,"")==0) {
     s->b.btns_r[btn_id] = 0;
   } else {
     s->b.btns_r[btn_id]= (int)((viz_button_w + viz_button_h)/4);
   }
+
   s->b.btns_x[btn_id]=viz_button_x + s->b.btns_r[btn_id];
   s->b.btns_y[btn_id]=viz_button_y + s->b.btns_r[btn_id];
+
   if (s->b.btns_r[btn_id] == 0) {
     return;
   }
-  
+
+//hackish..
+
+  if (btn_disabled[btn_id] == 1 && s->b.btns_status[btn_id] != 2){
+    return;
+  }
+
   nvgBeginPath(s->vg);
-  nvgRoundedRect(s->vg, viz_button_x, viz_button_y, viz_button_w, viz_button_h, 80);
-  nvgStrokeWidth(s->vg, 12);
+  nvgRoundedRect(s->vg, viz_button_x, viz_button_y, viz_button_w, viz_button_h, 60);
+  nvgStrokeWidth(s->vg, 8);
 
   
-  if (s->b.btns_status[btn_id] ==0) {
+  if (s->b.btns_status[btn_id] == 0) {
     //disabled - red
     nvgStrokeColor(s->vg, nvgRGBA(255, 0, 0, 200));
     if (strcmp(btn_text2,"")==0) {
       btn_text2 = (char *)"Off";
     }
   } else
-  if (s->b.btns_status[btn_id] ==1) {
+  if (s->b.btns_status[btn_id] == 1) {
     //enabled - white
     nvgStrokeColor(s->vg, nvgRGBA(255,255,255,200));
     nvgStrokeWidth(s->vg, 4);
@@ -383,14 +393,14 @@ void bb_draw_button( UIState *s, int btn_id) {
       btn_text2 = (char *)"Ready";
     }
   } else
-  if (s->b.btns_status[btn_id] ==2) {
+  if (s->b.btns_status[btn_id] == 2) {
     //active - green
     nvgStrokeColor(s->vg, nvgRGBA(28, 204,98,200));
     if (strcmp(btn_text2,"")==0) {
       btn_text2 = (char *)"Active";
     }
   } else
-  if (s->b.btns_status[btn_id] ==9) {
+  if (s->b.btns_status[btn_id] == 9) {
     //available - thin white
     nvgStrokeColor(s->vg, nvgRGBA(200,200,200,40));
     nvgStrokeWidth(s->vg, 4);
@@ -398,23 +408,23 @@ void bb_draw_button( UIState *s, int btn_id) {
       btn_text2 = (char *)"";
     }
   } else {
-    //others - orange
-    nvgStrokeColor(s->vg, nvgRGBA(255, 188, 3, 200));
-    if (strcmp(btn_text2,"")==0) {
-      btn_text2 = (char *)"Alert";
-    }
+      //others - orange
+      nvgStrokeColor(s->vg, nvgRGBA(255, 188, 3, 200));
+      if (strcmp(btn_text2,"")==0) {
+        btn_text2 = (char *)"Alert";
+      }
   }
 
   nvgStroke(s->vg);
 
   nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
   nvgFontFace(s->vg, "sans-regular");
-  nvgFontSize(s->vg, 14*2.5);
+  nvgFontSize(s->vg, 10*2.5);
   nvgFillColor(s->vg, nvgRGBA(255, 255, 255, 200));
   nvgText(s->vg, viz_button_x+viz_button_w/2, viz_button_y + 112, btn_text2, NULL);
 
   nvgFontFace(s->vg, "sans-semibold");
-  nvgFontSize(s->vg, 28*2.5);
+  nvgFontSize(s->vg, 24*2.5);
   nvgFillColor(s->vg, nvgRGBA(255, 255, 255, 255));
   nvgText(s->vg, viz_button_x+viz_button_w/2, viz_button_y + 85,btn_text, NULL);
 }
@@ -989,6 +999,7 @@ void ui_draw_vision_grid( UIState *s) {
 }
 
 void bb_ui_draw_logo( UIState *s) {
+  return;
   if ((s->status != STATUS_DISENGAGED) && (s->status != STATUS_STOPPED)) { //(s->status != STATUS_DISENGAGED) {//
     return;
   }
@@ -1176,7 +1187,6 @@ void bb_ui_draw_UI( UIState *s) {
 //    bb_ui_draw_measures_right(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
-    bb_ui_draw_logo(s);
 	 }
    if (s->b.tri_state_switch ==2) {
 	 	const UIScene *scene = &s->scene;
@@ -1189,7 +1199,6 @@ void bb_ui_draw_UI( UIState *s) {
 	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
-    bb_ui_draw_logo(s);
 	 }
 	 if (s->b.tri_state_switch ==3) {
     //we now use the state 3 for minimalistic data alerts
