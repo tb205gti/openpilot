@@ -152,7 +152,7 @@ class CarInterface():
         ret.longitudinalTuning.kpBP = [0., 5., 35.]
         ret.longitudinalTuning.kpV = [0.375, 0.325, 0.325]
         ret.longitudinalTuning.kiBP = [0., 5., 35.]
-        ret.longitudinalTuning.kiV = [0.00915,0.00825,0.00725]
+        ret.longitudinalTuning.kiV = [0.00925,0.00845,0.00745]
       elif teslaModel == "SD":
         ret.longitudinalTuning.kpBP = [0., 5., 35.]
         ret.longitudinalTuning.kpV = [0.50, 0.45, 0.4]
