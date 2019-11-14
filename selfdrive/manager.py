@@ -95,6 +95,7 @@ managed_processes = {
   "sensord": ("selfdrive/sensord", ["./start_sensord.py"]),
   "gpsd": ("selfdrive/sensord", ["./start_gpsd.py"]),
   "updated": "selfdrive.updated",
+#  "dashcamd": "selfdrive.dashcamd.dashcamd",
 }
 
 daemon_processes = {
