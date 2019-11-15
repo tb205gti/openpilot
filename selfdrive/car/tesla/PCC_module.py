@@ -180,6 +180,7 @@ class PCCController():
     self.maxsuggestedspeed_avg = MovingAverage(self.average_speed_over_x_suggestions)
     
   def load_pid(self):
+    print("************* LOADING PIDS **************");
     try:
       v_pid_json = open(V_PID_FILE)
       data = json.load(v_pid_json)
@@ -195,6 +196,7 @@ class PCCController():
 
     #Helper function for saving the PCC pid constants across drives
   def save_pid(self, pid):
+    print("************* SAVING PIDS **************");
     data = {}
     data['p'] = pid.p
     data['i'] = pid.i
