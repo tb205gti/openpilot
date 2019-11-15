@@ -523,7 +523,7 @@ class CarState():
       self.apFollowTimeInS =  1 + cp.vl["MCU_chassisControl"]["MCU_fcwSensitivity"] * 0.5
       self.keepEonOff = cp.vl["MCU_chassisControl"]["MCU_ldwEnable"] == 1
       self.alcaEnabled = cp.vl["MCU_chassisControl"]["MCU_pedalSafetyEnable"] == 1
-      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] == 1
+      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] != 1
 
     usu = cp.vl['MCU_gpsVehicleSpeed']["MCU_userSpeedOffsetUnits"]
     if usu == 1:
