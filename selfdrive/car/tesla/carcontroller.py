@@ -15,6 +15,7 @@ from selfdrive.car.tesla.ACC_module import ACCController
 from selfdrive.car.tesla.PCC_module import PCCController
 from selfdrive.car.tesla.HSO_module import HSOController
 from selfdrive.car.tesla.movingaverage import MovingAverage
+from selfdrive.car.tesla.AHB_module import AHBController
 import selfdrive.messaging as messaging
 
 # Steer angle limits
@@ -90,6 +91,7 @@ class CarController():
     self.PCC = PCCController(self)
     self.HSO = HSOController(self)
     self.GYRO = GYROController()
+    self.AHB = AHBController(self)
     self.sent_DAS_bootID = False
     self.speedlimit = None
     self.trafficevents = messaging.sub_sock('trafficEvents', conflate=True)
@@ -316,7 +318,7 @@ class CarController():
     if (frame % 5 == 0):
       if (changing_lanes and not self.prev_changing_lanes): #we have a transition from blinkers off to blinkers on, save the frame
         self.ldw_numb_frame_start = frame
-        if  (CS.v_ego > self.LDW_ENABLE_SPEED):
+        if  (CS.v_ego > self.LDW_ENABLE_SPEED and not self.alca_enabled):
           CS.UE.custom_alert_message(3, "LDW Disabled", 150, 4)
           
       # update the previous state of the blinkers (chaning_lanes      if (self.ALCA.laneChange_enabled > 1):
@@ -329,7 +331,8 @@ class CarController():
 
       if self.should_ldw and self.ldw_numb_frame_start != 0:
         self.ldw_numb_frame_start = 0
-        CS.UE.custom_alert_message(2, "LDW Enabled", 150, 4)
+        if not self.alca_enabled:
+          CS.UE.custom_alert_message(2, "LDW Enabled", 150, 4)
         
     #upodate custom UI buttons and alerts
     CS.UE.update_custom_ui()
@@ -431,7 +434,7 @@ class CarController():
     #First we emulate DAS.
     # DAS_longC_enabled (1),DAS_speed_override (1),DAS_apUnavailable (1), DAS_collision_warning (1),  DAS_op_status (4)
     # DAS_speed_kph(8), 
-    # DAS_turn_signal_request (2),DAS_forward_collision_warning (2), DAS_hands_on_state (4), 
+    # DAS_turn_signal_request (2),DAS_forward_collision_warning (2), DAS_hands_on_state (3), 
     # DAS_cc_state (2), DAS_usingPedal(1),DAS_alca_state (5),
     # DAS_acc_speed_limit_mph (8), 
     # DAS_speed_limit_units(8)
@@ -586,6 +589,10 @@ class CarController():
       self.DAS_221_lcAborting = 1
       self.warningCounter = 300
       self.warningNeeded = 1
+    if CS.useTeslaRadar and CS.hasTeslaIcIntegration:
+      highLowBeamStatus,highLowBeamReason = self.AHB.update(CS,frame)
+      if frame % 5 == 0:
+        can_sends.append(teslacan.create_fake_DAS_msg2(highLowBeamStatus,highLowBeamReason))
     if send_fake_msg:
       if enable_steer_control and op_status == 3:
         op_status = 0x5
