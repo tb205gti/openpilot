@@ -47,7 +47,7 @@ def get_can_signals(CP):
       ("MCU_ldwEnable", "MCU_chassisControl", 0),
       ("MCU_aebEnable", "MCU_chassisControl", 0),
       ("MCU_pedalSafetyEnable", "MCU_chassisControl", 0),
-      ("StW_AnglHP", "STW_ANGLHP_STAT", 0),
+      ("MCU_ahlbEnable", "MCU_chassisControl", 0),
       ("DI_gear", "DI_torque2", 3),
       ("DI_brakePedal", "DI_torque2", 0),
       ("DI_vehicleSpeed", "DI_torque2", 0),
