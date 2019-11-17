@@ -19,7 +19,7 @@ static void ui_draw_infobar(UIState *s) {
   time_t t = time(NULL);
   struct tm tm = *localtime(&t);
 
-  char spd[9];
+  char spd[5];
   snprintf(spd, sizeof(spd), "%i ", (int) (s->scene.v_ego * 3.6 + 0.5));
 
   char ang_steer[9];
