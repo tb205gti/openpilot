@@ -12,7 +12,7 @@ from selfdrive.tinklad.tinkla_interface import TinklaClient
 
 #RADAR_A_MSGS = list(range(0x371, 0x37F , 3))
 #RADAR_B_MSGS = list(range(0x372, 0x37F, 3))
-BOSCH_MAX_DIST = 150. #max distance for radar
+BOSCH_MAX_DIST = 250. #max distance for radar
 RADAR_A_MSGS = list(range(0x310, 0x36F , 3))
 RADAR_B_MSGS = list(range(0x311, 0x36F, 3))
 OBJECT_MIN_PROBABILITY = 20.
@@ -20,9 +20,9 @@ CLASS_MIN_PROBABILITY = 20.
 RADAR_MESSAGE_FREQUENCY = 0.050 * 1e9 #time in ns, radar sends data at 0.06 s
 VALID_MESSAGE_COUNT_THRESHOLD = 4
 #these are settings for Auto High Beam
-AHB_VALID_MESSAGE_COUNT_THRESHOLD = -1 
-AHB_OBJECT_MIN_PROBABILITY = 0.
-AHB_CLASS_MIN_PROBABILITY = 0.
+AHB_VALID_MESSAGE_COUNT_THRESHOLD = 1
+AHB_OBJECT_MIN_PROBABILITY = 5.
+AHB_CLASS_MIN_PROBABILITY = 5.
 
 
 # Tesla Bosch firmware has 32 objects in all objects or a selected set of the 5 we should look at
@@ -136,7 +136,7 @@ class RadarInterface(RadarInterfaceBase):
       # radar point only valid if it's a valid measurement and score is above 50
       # bosch radar data needs to match Index and Index2 for validity
       # also for now ignore construction elements
-      if (True or  cpt['Tracked']) and (cpt['LongDist']>0) and (cpt['LongDist'] < BOSCH_MAX_DIST) and \
+      if (cpt['LongDist']>0) and (cpt['LongDist'] < BOSCH_MAX_DIST) and \
           (self.valid_cnt[message] > AHB_VALID_MESSAGE_COUNT_THRESHOLD) and (cpt['ProbExist'] >= AHB_OBJECT_MIN_PROBABILITY) and \
           (cpt2['Class'] < 4) and (cpt2['ProbClass'] >= AHB_CLASS_MIN_PROBABILITY):
         if cpt2['MovingState'] <= 1:
