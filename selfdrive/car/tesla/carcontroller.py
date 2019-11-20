@@ -327,7 +327,7 @@ class CarController():
       if self.alca_enabled:
         self.ldw_numb_frame_start = frame + 200 #we don't want LDW for 2 seconds after ALCA finishes
       #Determine if we should have LDW or not
-      self.should_ldw = (frame > (self.ldw_numb_frame_start + int( 50 * CS.ldwNumbPeriod)) and CS.v_ego > self.LDW_ENABLE_SPEED)
+      self.should_ldw = (frame > (self.ldw_numb_frame_start + int( 100 * CS.ldwNumbPeriod)) and CS.v_ego > self.LDW_ENABLE_SPEED)
 
       if self.should_ldw and self.ldw_numb_frame_start != 0:
         self.ldw_numb_frame_start = 0
@@ -591,7 +591,7 @@ class CarController():
       self.warningNeeded = 1
     if CS.useTeslaRadar and CS.hasTeslaIcIntegration:
       highLowBeamStatus,highLowBeamReason = self.AHB.update(CS,frame)
-      if frame % 5 == 0:
+      if frame % 10 == 0:
         can_sends.append(teslacan.create_fake_DAS_msg2(highLowBeamStatus,highLowBeamReason))
     if send_fake_msg:
       if enable_steer_control and op_status == 3:
