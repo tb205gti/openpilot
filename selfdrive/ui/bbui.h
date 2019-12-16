@@ -1257,13 +1257,15 @@ void bb_ui_init(UIState *s) {
     s->b.uiButtonStatus_sock = PubSocket::create(s->b.ctx, "uiButtonStatus"); //zsock_new_pub("@tcp://127.0.0.1:8204");
     s->b.gps_sock = SubSocket::create(s->b.ctx, "gpsLocationExternal"); //zsock_new_sub(">tcp://127.0.0.1:8032","");
     s->b.uiGyroInfo_sock = SubSocket::create(s->b.ctx, "uiGyroInfo"); //zsock_new_sub(">tcp://127.0.0.1:8207", "");
+    s->b.uiPedalInfo_sock = SubSocket::create(s->b.ctx, "uiPedalInfo");
     s->b.poller = Poller::create({
                               s->b.uiButtonInfo_sock,
                               s->b.uiCustomAlert_sock,
                               s->b.uiSetCar_sock,
                               s->b.uiPlaySound_sock,
                               s->b.gps_sock,
-                              s->b.uiGyroInfo_sock
+                              s->b.uiGyroInfo_sock,
+                              s->b.uiPedalInfo_sock
                              });
 
     //BB Load Images
@@ -1448,6 +1450,18 @@ void  bb_ui_poll_update( UIState *s) {
           s->b.gyroRoll = datad.gyroRoll;
           s->b.gyroYaw = datad.gyroYaw;
           
+          capn_free(&ctx);
+        }
+        if (sock == s->b.uiPedalInfo_sock){
+          //pedalinfo sock
+          struct capn ctx;
+          capn_init_mem(&ctx, (uint8_t*)msg->getData(), msg->getSize(), 0);
+          cereal_UIPedalInfo_ptr stp;
+          stp.p = capn_getp(capn_root(&ctx), 0, 1);
+          struct cereal_UIPedalInfo datad;
+          cereal_read_UIPedalInfo(&datad, stp);
+          s->b.pedalPos = datad.pedalpos;
+
           capn_free(&ctx);
         }
         delete msg; 

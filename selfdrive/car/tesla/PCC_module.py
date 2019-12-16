@@ -180,7 +180,6 @@ class PCCController():
     self.maxsuggestedspeed_avg = MovingAverage(self.average_speed_over_x_suggestions)
     
   def load_pid(self):
-    print("************* LOADING PIDS **************");
     try:
       v_pid_json = open(V_PID_FILE)
       data = json.load(v_pid_json)
@@ -191,12 +190,11 @@ class PCCController():
           self.LoC.pid.f = data['f']
       else:
         print("self.LoC not initialized!")
-    except:
+    except :
       print("file not present, creating at next reset")
 
     #Helper function for saving the PCC pid constants across drives
   def save_pid(self, pid):
-    print("************* SAVING PIDS **************");
     data = {}
     data['p'] = pid.p
     data['i'] = pid.i
@@ -622,7 +620,7 @@ class PCCController():
     # Enforce limits on speed
     new_speed_kph = clip(new_speed_kph, MIN_PCC_V_KPH, MAX_PCC_V_KPH)
     new_speed_kph = clip(new_speed_kph, MIN_PCC_V_KPH, self.pedal_speed_kph)
-    if CS.blinker_on or (abs(CS.angle_steers) > ANGLE_STOP_ACCEL) or alca_enabled:
+    if CS.turn_signal_blinking or (abs(CS.angle_steers) > ANGLE_STOP_ACCEL) or alca_enabled:
       # Don't accelerate during manual turns, curves or ALCA.
       new_speed_kph = min(new_speed_kph, self.last_speed_kph)
     #BB Last safety check. Zero if below MIN_SAFE_DIST_M

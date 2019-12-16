@@ -63,6 +63,9 @@ struct UIGyroInfo {
     gyroYaw @8 :Float32;
 }
 
+struct UIPedalInfo{
+    pedalpos @0 :Float32;
+}
 
 
 

@@ -25,6 +25,7 @@ typedef struct BBUIState {
     PubSocket *uiButtonStatus_sock;
     SubSocket *gps_sock;
     SubSocket *uiGyroInfo_sock;
+    SubSocket *uiPedalInfo_sock;
     Poller * poller;
     int btns_x[6];
     int btns_y[6];
@@ -58,4 +59,5 @@ typedef struct BBUIState {
     uint16_t fanSpeed;
     bool keepEonOff;
     bool recording;
+    float pedalPos;
 } BBUIState;

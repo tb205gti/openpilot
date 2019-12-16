@@ -66,7 +66,7 @@ class CarInterface():
     # - a_ego exceeds a_target and v_ego is close to v_target
 
     # normalized max accel. Allowing max accel at low speed causes speed overshoots
-    max_accel_bp = [10, 20]    # m/s
+    max_accel_bp = [10, 17]    # m/s
     max_accel_v = [0.714, 1.0] # unit of max accel
     max_accel = interp(v_ego, max_accel_bp, max_accel_v)
 
@@ -103,6 +103,10 @@ class CarInterface():
     ret.isPandaBlack = is_panda_black
 
     teslaModel = read_db('/data/params','TeslaModel')
+
+    if teslaModel is not None:
+      teslaModel = teslaModel.decode()
+
     if teslaModel is None:
       teslaModel = "S"
 
@@ -284,24 +288,24 @@ class CarInterface():
 
     # TODO: button presses
     buttonEvents = []
-    ret.leftBlinker = bool(self.CS.turn_signal_state_left == 1)
-    ret.rightBlinker = bool(self.CS.turn_signal_state_right == 1)
+    ret.leftBlinker = bool(self.CS.left_blinker_on)
+    ret.rightBlinker = bool(self.CS.right_blinker_on)
 
 
     ret.doorOpen = not self.CS.door_all_closed
     ret.seatbeltUnlatched = not self.CS.seatbelt
 
-    if self.CS.prev_turn_signal_stalk_state != self.CS.turn_signal_stalk_state:
-      if self.CS.turn_signal_stalk_state == 1 or self.CS.prev_turn_signal_stalk_state == 1:
-        be = car.CarState.ButtonEvent.new_message()
-        be.type = 'leftBlinker'
-        be.pressed = self.CS.turn_signal_stalk_state == 1
-        buttonEvents.append(be)
-      if self.CS.turn_signal_stalk_state == 2 or self.CS.prev_turn_signal_stalk_state == 2:
-        be = car.CarState.ButtonEvent.new_message()
-        be.type = 'rightBlinker'
-        be.pressed = self.CS.turn_signal_stalk_state == 2
-        buttonEvents.append(be)
+    if self.CS.left_blinker_on != self.CS.prev_left_blinker_on:
+      be = car.CarState.ButtonEvent.new_message()
+      be.type = 'leftBlinker'
+      be.pressed = self.CS.left_blinker_on != 0
+      buttonEvents.append(be)
+
+    if self.CS.right_blinker_on != self.CS.prev_right_blinker_on:
+      be = car.CarState.ButtonEvent.new_message()
+      be.type = 'rightBlinker'
+      be.pressed = self.CS.right_blinker_on != 0
+      buttonEvents.append(be)
 
     if self.CS.cruise_buttons != self.CS.prev_cruise_buttons:
       be = car.CarState.ButtonEvent.new_message()

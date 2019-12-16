@@ -252,7 +252,7 @@ static void screen_draw_button(UIState *s, int touch_x, int touch_y) {
       nvgFontSize(s->vg, 60);
 
       if (captureState == CAPTURE_STATE_CAPTURING) {
-        NVGcolor fillColor = nvgRGBA(255,0,0,100);
+        NVGcolor fillColor = nvgRGBA(255,0,0,50);
         nvgFillColor(s->vg, fillColor);
         nvgFill(s->vg);
         nvgFillColor(s->vg, nvgRGBA(255,255,255,80));
@@ -260,7 +260,7 @@ static void screen_draw_button(UIState *s, int touch_x, int touch_y) {
       else {
         nvgFillColor(s->vg, nvgRGBA(255, 255, 255, 200));
       }
-      nvgText(s->vg,btn_x-70,btn_y+45,"REC",NULL);
+      nvgText(s->vg,btn_x-88,btn_y+50,"REC",NULL);
   }
 
   if (captureState == CAPTURE_STATE_CAPTURING) {
@@ -307,6 +307,7 @@ void dashcam( UIState *s, int touch_x, int touch_y) {
   //}
   if (!s->vision_connected) {
     // Assume car is not in drive so stop recording
+    s->b.recording = false;
     stop_capture();
   }
 }
