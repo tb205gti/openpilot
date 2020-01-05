@@ -250,6 +250,8 @@ class CarState():
     # Tesla Model
     self.teslaModelDetected = 1
     self.teslaModel = read_db('/data/params','TeslaModel')
+    if self.teslaModel is not None:
+      self.teslaModel = self.teslaModel.decode()
     if self.teslaModel is None:
       self.teslaModel = "S"
       self.teslaModelDetected = 0
@@ -287,7 +289,7 @@ class CarState():
 
     self.mapBasedSuggestedSpeed = 0.
     self.splineBasedSuggestedSpeed = 0.
-    self.maxdrivespeed = 0.
+    self.map_suggested_speed = 0.
 
     self.gpsLongitude = 0.
     self.gpsLatitude = 0.
@@ -305,10 +307,10 @@ class CarState():
 
     self.user_gas = 0.
     self.user_gas_pressed = False
-    self.pedal_interceptor_state = 0
+    self.pedal_interceptor_state = self.prev_pedal_interceptor_state = 0
     self.pedal_interceptor_value = 0.
     self.pedal_interceptor_value2 = 0.
-    self.pedal_interceptor_missed_counter = 0
+    self.pedal_idx = self.prev_pedal_idx = 0
     self.brake_switch_prev = 0
     self.brake_switch_ts = 0
 
@@ -361,9 +363,6 @@ class CarState():
 
     #BB variables for pedal CC
     self.pedal_speed_kph = 0.
-    # Pedal mode is ready, i.e. hardware is present and normal cruise is off.
-    self.pedal_interceptor_available = False
-    self.prev_pedal_interceptor_available = False
 
     #BB UIEvents
     self.UE = UIEvents(self)
@@ -424,11 +423,10 @@ class CarState():
     self.ahbHiBeamOn = 0
     self.ahbNightMode = 0
    
-  def config_ui_buttons(self, pedalAvailable,  pedalPresent):
-    if pedalAvailable:
+  def config_ui_buttons(self, pcc_available, pcc_blocked_by_acc_mode):
+    if pcc_available:
       self.btns_init[1] = [PCCModes.BUTTON_NAME, PCCModes.BUTTON_ABREVIATION, PCCModes.labels()]
     else:
-      # we don't have pedal interceptor
       self.btns_init[1] = [ACCMode.BUTTON_NAME, ACCMode.BUTTON_ABREVIATION, ACCMode.labels()]
     btn = self.cstm_btns.btns[1]
     btn.btn_name = self.btns_init[1][0]
@@ -436,7 +434,7 @@ class CarState():
     btn.btn_label2 = self.btns_init[1][2][0]
     btn.btn_status = 1
 
-    if (not pedalAvailable) and pedalPresent:
+    if (not pcc_available) and pcc_blocked_by_acc_mode:
       btn.btn_label2 = self.btns_init[1][2][1]
     self.cstm_btns.update_ui_buttons(1, 1)
 
@@ -455,12 +453,12 @@ class CarState():
     if self.rampType > 0:
       #we are on a ramp, use the spline info if available
       if self.splineBasedSuggestedSpeed > 0:
-        self.maxdrivespeed = self.splineBasedSuggestedSpeed
+        self.map_suggested_speed = self.splineBasedSuggestedSpeed
       else:
-        self.maxdrivespeed = self.mapBasedSuggestedSpeed
+        self.map_suggested_speed = self.mapBasedSuggestedSpeed
     else:
       #we are on a normal road, use max of the two
-      self.maxdrivespeed = max(self.mapBasedSuggestedSpeed, self.splineBasedSuggestedSpeed)
+      self.map_suggested_speed = max(self.mapBasedSuggestedSpeed, self.splineBasedSuggestedSpeed)
 
   def update_ui_buttons(self,btn_id,btn_status):
     # we only focus on btn_id=3, which is for visiond
@@ -527,7 +525,7 @@ class CarState():
       self.apFollowTimeInS =  1 + cp.vl["MCU_chassisControl"]["MCU_fcwSensitivity"] * 0.5
       self.keepEonOff = cp.vl["MCU_chassisControl"]["MCU_ldwEnable"] == 1
       self.alcaEnabled = cp.vl["MCU_chassisControl"]["MCU_pedalSafetyEnable"] == 1
-      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] != 1
+      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] != 1 and self.useTeslaMapData
       #AHB info
       self.ahbHighBeamStalkPosition = cp.vl["STW_ACTN_RQ"]["HiBmLvr_Stat"]
       self.ahbEnabled = cp.vl["MCU_chassisControl"]["MCU_ahlbEnable"]
@@ -552,13 +550,12 @@ class CarState():
     self.speedLimitToIc = int(cp.vl["UI_driverAssistMapData"]["UI_mapSpeedLimit"])
     #BB unsure yet but DBC tells us that the map data has 0x00 as unknown, 0x1E as UNLIMITED and 0x1F as SNA while
     #the DAS_status has 0x00 as UNKNOWN/SNA and 0x1F as UNLIMITED. Needs testing on Autobahn
-    if self.speedLimitToIc >= 2:
-        self.speedLimitToIc -= 1 #map data has 7 in second position
-    if self.speedLimitToIc == 0x1E:
+    if self.speedLimitToIc == 0x1F: # SNA
       self.speedLimitToIc = 0
-    elif self.speedLimitToIc == 0x1D: #no speed limit
+    elif self.speedLimitToIc == 0x1E: # no speed limit
       self.speedLimitToIc = 0x1F
-      self.speedLimitKph = 170.
+    elif self.speedLimitToIc >= 2:
+      self.speedLimitToIc -= 1 #map data has 7 in second position
 
     rdSignMsg = cp.vl["UI_driverAssistRoadSign"]["UI_roadSign"]
     if rdSignMsg == 4:
@@ -594,7 +591,7 @@ class CarState():
     self.v_wheel = 0 #JCT
     self.v_weight = 0 #JCT
     speed = (cp.vl["DI_torque2"]['DI_vehicleSpeed']) * CV.MPH_TO_KPH/3.6 #JCT MPH_TO_MS. Tesla is in MPH, v_ego is expected in M/S
-    speed = speed * 1.01 # To match car's displayed speed
+    speed = speed * 1.02 # To match car's displayed speed
 
     if abs(speed - self.v_ego) > 2.0:  # Prevent large accelerations when car starts at non zero speed
       self.v_ego_kf.x = [[speed], [0.0]]
@@ -606,9 +603,12 @@ class CarState():
 
 
     #BB use this set for pedal work as the user_gas_xx is used in other places
+    self.prev_pedal_interceptor_state = self.pedal_interceptor_state
     self.pedal_interceptor_state = pedal_cp.vl["GAS_SENSOR"]['STATE']
     self.pedal_interceptor_value = pedal_cp.vl["GAS_SENSOR"]['INTERCEPTOR_GAS']
     self.pedal_interceptor_value2 = pedal_cp.vl["GAS_SENSOR"]['INTERCEPTOR_GAS2']
+    self.prev_pedal_idx = self.pedal_idx
+    self.pedal_idx = pedal_cp.vl["GAS_SENSOR"]['IDX']
 
     can_gear_shifter = cp.vl["DI_torque2"]['DI_gear']
 
@@ -632,7 +632,6 @@ class CarState():
     self.DI_cruiseSet = cp.vl["DI_state"]['DI_cruiseSet']
     if self.imperial_speed_units:
       self.DI_cruiseSet = self.DI_cruiseSet * CV.MPH_TO_KPH
-    self.cruise_speed_offset = 0.
     self.gear_shifter = parse_gear_shifter(can_gear_shifter, self.CP.carFingerprint)
 
     self.pedal_gas = 0. # cp.vl["DI_torque1"]['DI_pedalPos'] / 102 #BB: to make it between 0..1
@@ -654,25 +653,7 @@ class CarState():
 
     self.regenLight = cp.vl["DI_state"]['DI_regenLight'] == 1
 
-    self.prev_pedal_interceptor_available = self.pedal_interceptor_available
-    pedal_has_value = bool(self.pedal_interceptor_value) or bool(self.pedal_interceptor_value2)
-    pedal_interceptor_present = self.pedal_interceptor_state in [0, 5] and pedal_has_value
-    # Add loggic if we just miss some CAN messages so we don't immediately disable pedal
-    if pedal_has_value:
-      self.pedal_interceptor_missed_counter = 0
-    if pedal_interceptor_present:
-      self.pedal_interceptor_missed_counter = 0
-    else:
-      self.pedal_interceptor_missed_counter += 1
-    pedal_interceptor_present = pedal_interceptor_present and (self.pedal_interceptor_missed_counter < 10)
-    # Mark pedal unavailable while traditional cruise is on.
-    self.pedal_interceptor_available = pedal_interceptor_present and (self.forcePedalOverCC or not bool(self.pcm_acc_status))
-    if self.pedal_interceptor_available != self.prev_pedal_interceptor_available:
-        self.config_ui_buttons(self.pedal_interceptor_available, pedal_interceptor_present)
-
     self.v_cruise_actual = self.DI_cruiseSet
-    self.hud_lead = 0 #JCT
-    self.cruise_speed_offset = 0.
 
 
 # carstate standalone tester
