@@ -3,9 +3,9 @@ from cereal import log,tesla
 from common.params import Params
 from collections import namedtuple
 from common.numpy_fast import clip, interp
-from common.realtime import DT_CTRL
 from common import realtime
 from selfdrive.car.tesla import teslacan
+from selfdrive.car.tesla.speed_utils.fleet_speed import FleetSpeed
 from selfdrive.car.tesla.values import AH, CM
 from selfdrive.can.packer import CANPacker
 from selfdrive.config import Conversions as CV
@@ -14,7 +14,7 @@ from selfdrive.car.modules.GYRO_module import GYROController
 from selfdrive.car.tesla.ACC_module import ACCController
 from selfdrive.car.tesla.PCC_module import PCCController
 from selfdrive.car.tesla.HSO_module import HSOController
-from selfdrive.car.tesla.movingaverage import MovingAverage
+from selfdrive.car.tesla.speed_utils.movingaverage import MovingAverage
 from selfdrive.car.tesla.AHB_module import AHBController
 import selfdrive.messaging as messaging
 
@@ -78,7 +78,6 @@ class CarController():
   def __init__(self, dbc_name):
     self.fleet_speed_state = 0
     self.cc_counter = 0
-    self.UI_splineID = -1
     self.alcaStateData = None
     self.icLeadsData = None
     self.params = Params()
@@ -596,8 +595,10 @@ class CarController():
       if frame % 5 == 0:
         self.cc_counter = (self.cc_counter + 1) % 40 #use this to change status once a second
         self.fleet_speed_state = 0x00 #fleet speed unavailable
-        if (CS.medianFleetSpeedMPS > 0) and (CS.mapAwareSpeed) and (CS.splineLocConfidence > 60) and (CS.UI_splineID > 0):
-          if CS.speed_control_enabled == 1:
+        if FleetSpeed.is_available(CS):
+          if self.ACC.fleet_speed.is_active(frame) or self.PCC.fleet_speed.is_active(frame):
+#        if (CS.medianFleetSpeedMPS > 0) and (CS.mapAwareSpeed) and (CS.splineLocConfidence > 60) and (CS.UI_splineID > 0):
+          #if CS.speed_control_enabled == 1:
             self.fleet_speed_state = 0x02 #fleet speed enabled
           else:
             self.fleet_speed_state = 0x01 #fleet speed available

@@ -591,7 +591,7 @@ class CarState():
     self.v_wheel = 0 #JCT
     self.v_weight = 0 #JCT
     speed = (cp.vl["DI_torque2"]['DI_vehicleSpeed']) * CV.MPH_TO_KPH/3.6 #JCT MPH_TO_MS. Tesla is in MPH, v_ego is expected in M/S
-    speed = speed * 1.02 # To match car's displayed speed
+    speed = speed * 1.01 # To match car's displayed speed
 
     if abs(speed - self.v_ego) > 2.0:  # Prevent large accelerations when car starts at non zero speed
       self.v_ego_kf.x = [[speed], [0.0]]
