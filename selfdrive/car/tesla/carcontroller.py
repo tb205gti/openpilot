@@ -323,6 +323,9 @@ class CarController():
 
      #PKA Send pedal info to be used in the UI
     if (frame % 50 == 0):
+      if (CS.pedal_interceptor_value < 3.):
+        CS.UE.uiPedalInfoEvent(0)
+    else:
       CS.UE.uiPedalInfoEvent(int(CS.pedal_interceptor_value))
 
     if (frame % 100 == 0):
