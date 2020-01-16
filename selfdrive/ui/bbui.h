@@ -309,8 +309,11 @@ void bb_draw_button( UIState *s, int btn_id) {
 4 = MSG
 5 = Sound
 */
-  int btn_removed [6] = {0,0,1,0,1,1};
-  int btn_disabled [6] = {1,1,1,1,1,1};
+//  int btn_removed [6] = {0,0,1,0,1,1};
+//  int btn_disabled [6] = {1,1,1,1,1,1};
+
+  int btn_removed [6] = {0,0,0,0,0,0};
+  int btn_disabled [6] = {0,0,0,0,0,0};
 
   if (btn_removed[btn_id] == 1){
     return;

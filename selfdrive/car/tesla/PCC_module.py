@@ -219,7 +219,7 @@ class PCCController():
       timed_out = frame >= self.pedal_timeout_frame
       if timed_out or CS.pedal_interceptor_state > 0:
         if self.prev_pcc_available:
-          CS.UE.custom_alert_message(4, "Pedal Interceptor %s" % ("timed out" if timed_out else "fault (state %s)" % CS.pedal_interceptor_state), 200, 4)
+          CS.UE.custom_alert_message(4, "Pedal %s" % ("timed out %s" % CS.pedal_interceptor_state if timed_out else "fault (state %s)" % CS.pedal_interceptor_state), 200, 4)
         if frame % 50 == 0:
           # send reset command
           idx = self.pedal_idx
