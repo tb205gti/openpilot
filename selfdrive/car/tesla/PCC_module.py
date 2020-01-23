@@ -22,7 +22,7 @@ RESET_PID_ON_DISENGAGE = False
 
 # TODO: these should end up in values.py at some point, probably variable by trim
 # Accel limits
-MAX_RADAR_DISTANCE = 120. #max distance to take in consideration radar reading
+MAX_RADAR_DISTANCE = 140. #max distance to take in consideration radar reading
 MAX_PEDAL_VALUE = 112.
 PEDAL_HYST_GAP = 1.0  # don't change pedal command for small oscilalitons within this value
 # Cap the pedal to go from 0 to max in 4 seconds
@@ -154,7 +154,7 @@ class PCCController():
     self.v_pid = 0.
     self.a_pid = 0.
     self.last_output_gb = 0.
-    self.last_speed_kph = 0.
+    self.last_speed_kph = None
     #for smoothing the changes in speed
     self.v_acc_start = 0.0
     self.a_acc_start = 0.0
@@ -165,7 +165,6 @@ class PCCController():
     self.a_acc_sol = 0.0
     self.v_cruise = 0.0
     self.a_cruise = 0.0
-    self.had_lead = False
     #Long Control
     self.LoC = None
     #when was radar data last updated?
@@ -219,7 +218,7 @@ class PCCController():
       timed_out = frame >= self.pedal_timeout_frame
       if timed_out or CS.pedal_interceptor_state > 0:
         if self.prev_pcc_available:
-          CS.UE.custom_alert_message(4, "Pedal %s" % ("timed out %s" % CS.pedal_interceptor_state if timed_out else "fault (state %s)" % CS.pedal_interceptor_state), 200, 4)
+          CS.UE.custom_alert_message(4, "Pedal Interceptor %s" % ("timed out" if timed_out else "fault (state %s)" % CS.pedal_interceptor_state), 200, 4)
         if frame % 50 == 0:
           # send reset command
           idx = self.pedal_idx
@@ -250,7 +249,9 @@ class PCCController():
         self.enable_pedal_cruise = True
         self.reset(CS.v_ego)
         # Increase PCC speed to match current, if applicable.
-        self.pedal_speed_kph = max(CS.v_ego * CV.MS_TO_KPH, self.speed_limit_kph)
+        # We round the target speed in the user's units of measurement to avoid jumpy speed readings
+        current_speed_kph_uom_rounded = int(CS.v_ego * CV.MS_TO_KPH / speed_uom_kph + 0.5) * speed_uom_kph
+        self.pedal_speed_kph = max(current_speed_kph_uom_rounded, self.speed_limit_kph)
     # Handle pressing the cancel button.
     elif CS.cruise_buttons == CruiseButtons.CANCEL:
       self.enable_pedal_cruise = False
@@ -260,18 +261,16 @@ class PCCController():
     # Handle pressing up and down buttons.
     elif (self.enable_pedal_cruise 
           and CS.cruise_buttons != self.prev_cruise_buttons):
-      # Real stalk command while PCC is already enabled. Adjust the max PCC
-      # speed if necessary. 
-      actual_speed_kph = CS.v_ego * CV.MS_TO_KPH
+     # Real stalk command while PCC is already enabled. Adjust the max PCC speed if necessary.
+     # We round the target speed in the user's units of measurement to avoid jumpy speed readings
+      actual_speed_kph_uom_rounded = int(CS.v_ego * CV.MS_TO_KPH / speed_uom_kph + 0.5) * speed_uom_kph
       if CS.cruise_buttons == CruiseButtons.RES_ACCEL:
-        self.pedal_speed_kph = max(self.pedal_speed_kph, actual_speed_kph) + speed_uom_kph
+        self.pedal_speed_kph = max(self.pedal_speed_kph, actual_speed_kph_uom_rounded) + speed_uom_kph
       elif CS.cruise_buttons == CruiseButtons.RES_ACCEL_2ND:
-        self.pedal_speed_kph = max(self.pedal_speed_kph, actual_speed_kph) + 5 * speed_uom_kph
+        self.pedal_speed_kph = max(self.pedal_speed_kph, actual_speed_kph_uom_rounded) + 5 * speed_uom_kph
       elif CS.cruise_buttons == CruiseButtons.DECEL_SET:
-        #self.pedal_speed_kph = max(self.pedal_speed_kph, actual_speed_kph) - speed_uom_kph
-        self.pedal_speed_kph =self.pedal_speed_kph - speed_uom_kph
+        self.pedal_speed_kph = self.pedal_speed_kph - speed_uom_kph
       elif CS.cruise_buttons == CruiseButtons.DECEL_2ND:
-        #self.pedal_speed_kph = max(self.pedal_speed_kph, actual_speed_kph) - 5 * speed_uom_kph
         self.pedal_speed_kph = self.pedal_speed_kph - 5 * speed_uom_kph
       # Clip PCC speed between 0 and 170 KPH.
       self.pedal_speed_kph = clip(self.pedal_speed_kph, MIN_PCC_V_KPH, MAX_PCC_V_KPH)
@@ -309,7 +308,7 @@ class PCCController():
 
     return can_sends
     
-  def update_pdl(self, enabled, CS, frame, actuators, pcm_speed, speed_limit_ms, speed_limit_valid, set_speed_limit_active, speed_limit_offset,alca_enabled):
+  def update_pdl(self, enabled, CS, frame, actuators, pcm_speed, speed_limit_ms, set_speed_limit_active, speed_limit_offset,alca_enabled):
     idx = self.pedal_idx
 
     self.prev_speed_limit_kph = self.speed_limit_kph
@@ -330,12 +329,14 @@ class PCCController():
       #print ("Torque level at detection %s" % (CS.torqueLevel))
       #print ("Speed level at detection %s" % (CS.v_ego * CV.MS_TO_MPH))
 
-    if speed_limit_valid and set_speed_limit_active and (speed_limit_ms > 2.7):
-      self.speed_limit_kph = (speed_limit_ms +  speed_limit_offset) * CV.MS_TO_KPH
-      if not (int(self.prev_speed_limit_kph) == int(self.speed_limit_kph)):
+    if set_speed_limit_active and speed_limit_ms > 0:
+      self.speed_limit_kph = (speed_limit_ms + speed_limit_offset) * CV.MS_TO_KPH
+      if int(self.prev_speed_limit_kph) != int(self.speed_limit_kph):
         self.pedal_speed_kph = self.speed_limit_kph
         # reset MovingAverage for fleet speed when speed limit changes
         self.fleet_speed.reset_averager()
+    else: # reset internal speed limit, so double pull doesn't set higher speed than current (e.g. after leaving the highway)
+      self.speed_limit_kph = 0.
     self.pedal_idx = (self.pedal_idx + 1) % 16
 
     if not self.pcc_available or not enabled:
@@ -440,6 +441,7 @@ class PCCController():
         self.v_acc_sol = reset_speed
         self.a_acc_sol = reset_accel
         self.v_pid = reset_speed
+        self.last_speed_kph = None
 
     ##############################################################
     # This mode uses the longitudinal MPC built in OP
@@ -481,39 +483,30 @@ class PCCController():
   # function to calculate the cruise speed based on a safe follow distance
   def calc_follow_speed_ms(self, CS, alca_enabled):
     # Make sure we were able to populate lead_1.
-    lead_dist_m = 0.
     if self.lead_1 is None:
       return None, None, None
     # dRel is in meters.
-    if CS.useTeslaRadar:
-      lead_dist_m = self.lead_1.dRel
-    else:
-      lead_dist_m = _visual_radar_adjusted_dist_m(self.lead_1.dRel, CS)
+    lead_dist_m = self.lead_1.dRel
+    if not CS.useTeslaRadar:
+      lead_dist_m = _visual_radar_adjusted_dist_m(lead_dist_m, CS)
     # Grab the relative speed.
-    rel_speed_kph = 0.
-    #if self.had_lead:
-      #avoid inital break when lead just detected
-    self.vRel = 0.
-    self.aRel = 0.
-    if abs(self.lead_1.vRel) > .5:
-      self.vRel = self.lead_1.vRel
-    if abs(self.lead_1.aRel) > .5:
-      self.aRel = self.lead_1.aRel
-    rel_speed_kph = (self.vRel + 0 * CS.apFollowTimeInS * self.aRel) * CV.MS_TO_KPH
+    v_rel = self.lead_1.vRel if abs(self.lead_1.vRel) > .5 else 0
+    a_rel = self.lead_1.aRel if abs(self.lead_1.aRel) > .5 else 0
+    rel_speed_kph = (v_rel + 0 * CS.apFollowTimeInS * a_rel) * CV.MS_TO_KPH
     # v_ego is in m/s, so safe_distance is in meters.
     safe_dist_m = _safe_distance_m(CS.v_ego,CS)
     # Current speed in kph
     actual_speed_kph = CS.v_ego * CV.MS_TO_KPH
     # speed and brake to issue
+    if self.last_speed_kph is None:
+      self.last_speed_kph = actual_speed_kph
     new_speed_kph = self.last_speed_kph
     ###   Logic to determine best cruise speed ###
     if self.enable_pedal_cruise:
       # If no lead is present, accel up to max speed
       if lead_dist_m == 0 or lead_dist_m > MAX_RADAR_DISTANCE:
         new_speed_kph = self.pedal_speed_kph
-        self.had_lead = False
       elif lead_dist_m > 0:
-        self.had_lead = True
         #BB Use the Kalman lead speed and acceleration
         lead_absolute_speed_kph = actual_speed_kph + rel_speed_kph #(self.lead_1.vLeadK + _DT * self.lead_1.aLeadK) * CV.MS_TO_KPH
         rel_speed_kph = lead_absolute_speed_kph - actual_speed_kph

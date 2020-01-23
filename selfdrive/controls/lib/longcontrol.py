@@ -1,6 +1,8 @@
 from cereal import log
 from common.numpy_fast import clip, interp
 from selfdrive.controls.lib.pid import PIController
+#PKA added derivative to the PID controller
+#from selfdrive.controls.lib.pid_real import PIController
 
 LongCtrlState = log.ControlsState.LongControlState
 
@@ -58,13 +60,31 @@ def long_control_state_trans(active, long_control_state, v_ego, v_target, v_pid,
 class LongControl():
   def __init__(self, CP, compute_gb):
     self.long_control_state = LongCtrlState.off  # initialized to off
+
+#PKA added the derivative..
+#    kdBp = [0, 20.,35.]
+#    kdV = [0.08, 0.07, 0.06]
+#use CP.longitudalTuning.kdBp and CP.longitudalTuning.kdV
+
     self.pid = PIController((CP.longitudinalTuning.kpBP, CP.longitudinalTuning.kpV),
                             (CP.longitudinalTuning.kiBP, CP.longitudinalTuning.kiV),
                             rate=RATE,
                             sat_limit=0.8,
                             convert=compute_gb)
+#PKA Added derivative to the PI(D) controller
+#    self.pid = PIController((CP.longitudinalTuning.kpBP, CP.longitudinalTuning.kpV),
+#                            (CP.longitudinalTuning.kiBP, CP.longitudinalTuning.kiV),
+#                            (kdBp,kdV),
+#                            rate=RATE,
+#                            sat_limit=0.8,
+#                            convert=compute_gb)
+
+
     self.v_pid = 0.0
     self.last_output_gb = 0.0
+
+    #PKA rewind test
+#    self.last_v_target = 0
 
   def reset(self, v_pid):
     """Reset PID controller and change setpoint"""
@@ -73,6 +93,15 @@ class LongControl():
 
   def update(self, active, v_ego, brake_pressed, standstill, cruise_standstill, v_cruise, v_target, v_target_future, a_target, CP):
     """Update longitudinal control. This updates the state machine and runs a PID loop"""
+    
+
+    #PKA rewind test
+ #   if self.last_v_target >= v_ego >= v_target:
+ #     self.pid.i = 0.0
+ #   elif self.last_v_target <= v_ego <= v_target:
+ #     self.pid.i = 0.0
+
+
     # Actuation limits
     gas_max = interp(v_ego, CP.gasMaxBP, CP.gasMaxV)
     brake_max = interp(v_ego, CP.brakeMaxBP, CP.brakeMaxV)
