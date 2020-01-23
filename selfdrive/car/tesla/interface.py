@@ -148,14 +148,18 @@ class CarInterface():
         ret.longitudinalTuning.kpV = [0.50, 0.45, 0.45, 0.4]
         ret.longitudinalTuning.kiBP = [0., 5., 10., 35.]
         ret.longitudinalTuning.kiV = [0.01,0.01,0.01,0.01]
+     #   ret.longitudinalTuning.kdBP = [0, 20., 25., 35]
+     #   ret.longitudinalTuning.kdV = [0.08, 0.07, 0.06, 0.05]
+
       elif teslaModel == "SP":
-        ret.longitudinalTuning.kpBP = [0., 5., 22., 35.] 
-# 0km/h, 18 km/h, 80, 128km/h
-#        ret.longitudinalTuning.kpV = [0.365, 0.320, 0.328]
-        ret.longitudinalTuning.kpV = [0.260, 0.282, 0.298, 0.314]
+        ret.longitudinalTuning.kpBP = [0., 5., 22., 35.] # 0km/h, 18 km/h, 80, 128km/h
+        ret.longitudinalTuning.kpV = [0.260, 0.272, 0.296, 0.314]
 
         ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
         ret.longitudinalTuning.kiV = [0.00835,0.00815, 0.00740, 0.00735]
+
+     #   ret.longitudinalTuning.kdBP = [0, 5., 22., 35]
+     #   ret.longitudinalTuning.kdV = [0.10, 0.10, 0.10, 0.10]
 
 #PKA added the derivative values..
 #        ret.longitudinalTuning.kdBP = [0., 5., 22., 35.]
@@ -166,17 +170,26 @@ class CarInterface():
         ret.longitudinalTuning.kpV = [0.50, 0.45, 0.45, 0.4]
         ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
         ret.longitudinalTuning.kiV = [0.01,0.01,0.01]
+      #  ret.longitudinalTuning.kdBP = [0, 20., 25., 35]
+      #  ret.longitudinalTuning.kdV = [0.08, 0.07, 0.06, 0.05]
+
       elif teslaModel == "SPD":
         ret.longitudinalTuning.kpBP = [0., 5., 22., 35.]
         ret.longitudinalTuning.kpV = [0.375, 0.325, 0.325, 0.325]
         ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
         ret.longitudinalTuning.kiV = [0.00915,0.00825,0.00750,0.00725]
+       # ret.longitudinalTuning.kdBP = [0, 20., 25., 35]
+       # ret.longitudinalTuning.kdV = [0.08, 0.07, 0.06, 0.05]
+
       else:
         #use S numbers if we can't match anything
         ret.longitudinalTuning.kpBP = [0., 5., 22., 35.]
         ret.longitudinalTuning.kpV = [0.375, 0.325, 0.3, 0.3]
         ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
         ret.longitudinalTuning.kiV = [0.08,0.08,0.08,0.08]
+   #     ret.longitudinalTuning.kdBP = [0, 20., 25., 35]
+   #     ret.longitudinalTuning.kdV = [0.08, 0.07, 0.06, 0.05]
+
       
 
     else:
