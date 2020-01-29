@@ -103,6 +103,8 @@ class CarInterface():
     ret.isPandaBlack = is_panda_black
 
     teslaModel = read_db('/data/params','TeslaModel')
+    if teslaModel is not None:
+      teslaModel = teslaModel.decode()
     if teslaModel is None:
       teslaModel = "S"
 
@@ -149,7 +151,7 @@ class CarInterface():
         ret.longitudinalTuning.kiBP = [0., 5., 10., 35.]
         ret.longitudinalTuning.kiV = [0.01,0.01,0.01,0.01]
      #   ret.longitudinalTuning.kdBP = [0, 20., 25., 35]
-     #   ret.longitudinalTuning.kdV = [0.08, 0.07, 0.06, 0.05]
+     #   ret.longitudinalTuning.kdV = [0.01, 0.01, 0.01, 0.01]
 
       elif teslaModel == "SP":
         ret.longitudinalTuning.kpBP = [0., 5., 22., 35.] # 0km/h, 18 km/h, 80, 128km/h
@@ -158,7 +160,7 @@ class CarInterface():
         ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
         ret.longitudinalTuning.kiV = [0.00835,0.00817, 0.00765, 0.00747]
      #   ret.longitudinalTuning.kdBP = [0, 5., 22., 35]
-     #   ret.longitudinalTuning.kdV = [0.10, 0.10, 0.10, 0.10]
+     #   ret.longitudinalTuning.kdV = [0.010, 0.010, 0.010, 0.01]
 
       elif teslaModel == "SD":
         ret.longitudinalTuning.kpBP = [0., 5., 22., 35.]
@@ -166,7 +168,7 @@ class CarInterface():
         ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
         ret.longitudinalTuning.kiV = [0.01,0.01,0.01]
       #  ret.longitudinalTuning.kdBP = [0, 20., 25., 35]
-      #  ret.longitudinalTuning.kdV = [0.08, 0.07, 0.06, 0.05]
+      #  ret.longitudinalTuning.kdV = [0.01, 0.01, 0.01, 0.01]
 
       elif teslaModel == "SPD":
         ret.longitudinalTuning.kpBP = [0., 5., 22., 35.]
@@ -174,7 +176,7 @@ class CarInterface():
         ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
         ret.longitudinalTuning.kiV = [0.00915,0.00825,0.00750,0.00725]
        # ret.longitudinalTuning.kdBP = [0, 20., 25., 35]
-       # ret.longitudinalTuning.kdV = [0.08, 0.07, 0.06, 0.05]
+       # ret.longitudinalTuning.kdV = [0.01, 0.01, 0.01, 0.01]
 
       else:
         #use S numbers if we can't match anything
@@ -183,7 +185,7 @@ class CarInterface():
         ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
         ret.longitudinalTuning.kiV = [0.08,0.08,0.08,0.08]
    #     ret.longitudinalTuning.kdBP = [0, 20., 25., 35]
-   #     ret.longitudinalTuning.kdV = [0.08, 0.07, 0.06, 0.05]
+   #     ret.longitudinalTuning.kdV = [0.01, 0.01, 0.01, 0.01]
 
       
 
