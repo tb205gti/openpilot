@@ -193,6 +193,7 @@ class PCCController():
     data = {}
     data['p'] = pid.p
     data['i'] = pid.i
+    #data['d'] = pid.d
     data['f'] = pid.f
     try:
       with open(V_PID_FILE , 'w') as outfile :
