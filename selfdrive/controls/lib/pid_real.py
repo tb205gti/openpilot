@@ -76,12 +76,14 @@ class PIController():
     error = float(apply_deadzone(setpoint - measurement, deadzone))
     self.p = error * self.k_p
     
-    #PKA Calculate k_f as a dynamic value between 0 and 1 - depending on distance to setpoint
-    # ramps down from 10kmh from target
-    dist_to_target = clip(abs(setpoint - speed),0,10)
-    self.k_f = dist_to_target * 0.1
-    #clip just to be absolutely sure, should not be needed at all..
-    #self.k_f = clip(self.k_f,0,1)
+    if (error > 0): #we are below - ramp down feedforward
+      clipped_error = clip(error,0,10)
+      self.k_f = clipped_error * 0.1
+      #clip just to be absolutely sure?
+      self.k_f = clip(self.k_f,0,1)
+    else #we are driving too fast - full feedforward. 
+    # TODO: Ramp down - but only for 2-3kmh diff 0-10 makes us brake too little..
+      self-k_f = 1.0
     
     self.f = feedforward * self.k_f
     self.d = 0.0
