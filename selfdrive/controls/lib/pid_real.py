@@ -83,7 +83,7 @@ class PIController():
       self.k_f = clip(self.k_f,0,1)
     else: #we are driving too fast - full feedforward. 
     # TODO: Ramp down - but only for 2-3kmh diff 0-10 makes us brake too little..
-      self-k_f = 1.0
+      self.k_f = 1.0
     
     self.f = feedforward * self.k_f
     self.d = 0.0
