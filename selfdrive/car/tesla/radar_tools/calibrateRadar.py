@@ -8,10 +8,10 @@ except ValueError:
 from cereal import car
 import time
 import os
-from selfdrive.can.parser import CANParser
+from opendbc.can.parser import CANParser
 from common.realtime import sec_since_boot
-from selfdrive.services import service_list
-import selfdrive.messaging as messaging
+from cereal.services import service_list
+import cereal.messaging as messaging
 from selfdrive.car.tesla.readconfig import read_config_file,CarSettings
 from selfdrive.car.tesla.radar_interface import RadarInterface
 
@@ -34,7 +34,7 @@ if __name__ == "__main__":
   can_sock = messaging.sub_sock('can')
   while 1:
     can_strings = messaging.drain_sock_raw(can_sock, wait_for_one=True)
-    rr,rrext,ahb = RI.update(can_strings)
+    rr,rrext,ahb = RI.update(can_strings,0.)
 
     if (rr is None) or (rrext is None):
       continue

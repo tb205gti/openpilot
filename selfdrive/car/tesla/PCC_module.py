@@ -7,7 +7,7 @@ from selfdrive.car.tesla.values import CruiseState, CruiseButtons
 from selfdrive.config import Conversions as CV
 from selfdrive.controls.lib.speed_smoother import speed_smoother
 from selfdrive.controls.lib.planner import calc_cruise_accel_limits
-import selfdrive.messaging as messaging
+import cereal.messaging as messaging
 import time
 import math
 from collections import OrderedDict
@@ -26,7 +26,7 @@ MAX_RADAR_DISTANCE = 120. #max distance to take in consideration radar reading
 MAX_PEDAL_VALUE = 112.
 PEDAL_HYST_GAP = 1.0  # don't change pedal command for small oscilalitons within this value
 # Cap the pedal to go from 0 to max in 4 seconds
-PEDAL_MAX_UP = MAX_PEDAL_VALUE * _DT / 2 #used to be 4
+PEDAL_MAX_UP = MAX_PEDAL_VALUE * _DT / 4
 # Cap the pedal to go from max to 0 in 0.4 seconds
 PEDAL_MAX_DOWN = MAX_PEDAL_VALUE * _DT / 0.4
 
@@ -182,10 +182,6 @@ class PCCController():
         if self.LoC.pid:
           self.LoC.pid.p = data['p']
           self.LoC.pid.i = data['i']
-          if 'd' not in data:
-            self.Loc.pid.d = 0.01
-          else:
-            self.LoC.pid.d = data['d']
           self.LoC.pid.f = data['f']
       else:
         print("self.LoC not initialized!")
@@ -197,7 +193,6 @@ class PCCController():
     data = {}
     data['p'] = pid.p
     data['i'] = pid.i
-    data['d'] = pid.d
     data['f'] = pid.f
     try:
       with open(V_PID_FILE , 'w') as outfile :
@@ -228,7 +223,10 @@ class PCCController():
           # send reset command
           idx = self.pedal_idx
           self.pedal_idx = (self.pedal_idx + 1) % 16
-          can_sends.append(teslacan.create_pedal_command_msg(0, 0, idx))
+          pedalcan = 2
+          if CS.useWithoutHarness:
+            pedalcan = 0
+          can_sends.append(teslacan.create_pedal_command_msg(0, 0, idx, pedalcan))
       return can_sends
 
     prev_enable_pedal_cruise = self.enable_pedal_cruise
@@ -266,8 +264,8 @@ class PCCController():
     # Handle pressing up and down buttons.
     elif (self.enable_pedal_cruise 
           and CS.cruise_buttons != self.prev_cruise_buttons):
-     # Real stalk command while PCC is already enabled. Adjust the max PCC speed if necessary.
-     # We round the target speed in the user's units of measurement to avoid jumpy speed readings
+      # Real stalk command while PCC is already enabled. Adjust the max PCC speed if necessary.
+      # We round the target speed in the user's units of measurement to avoid jumpy speed readings
       actual_speed_kph_uom_rounded = int(CS.v_ego * CV.MS_TO_KPH / speed_uom_kph + 0.5) * speed_uom_kph
       if CS.cruise_buttons == CruiseButtons.RES_ACCEL:
         self.pedal_speed_kph = max(self.pedal_speed_kph, actual_speed_kph_uom_rounded) + speed_uom_kph
@@ -667,17 +665,17 @@ def _accel_limit_multiplier(CS, lead):
   with other accel limits."""
   accel_by_speed = OrderedDict([
     # (speed m/s, decel)
-      (0.,  0.985),  #   0 kmh
-      (10., 0.975),  #  35 kmh
-      (20., 0.95),  #  72 kmh
-      (30., 0.9)]) # 107 kmh
+      (0.,  0.95),  #   0 kmh
+      (10., 0.95),  #  35 kmh
+      (20., 0.925),  #  72 kmh
+      (30., 0.875)]) # 107 kmh
   if CS.teslaModel in ["SP","SPD"]:
       accel_by_speed = OrderedDict([
         # (speed m/s, decel)
-        (0.,  0.985),  #   0 kmh
-        (10., 0.975),  #  35 kmh
-        (20., 0.950),  #  72 kmh
-        (30., 0.900)]) # 107 kmh
+        (0.,  0.95),  #   0 kmh
+        (10., 0.95),  #  35 kmh
+        (20., 0.925),  #  72 kmh
+        (30., 0.875)]) # 107 kmh
   accel_mult = _interp_map(CS.v_ego, accel_by_speed)
   if _is_present(lead):
     safe_dist_m = _safe_distance_m(CS.v_ego,CS)

@@ -1,6 +1,6 @@
 from cereal import ui
 from common import realtime
-import selfdrive.messaging as messaging
+import cereal.messaging as messaging
 
 class UIEvents():
     def __init__(self,carstate):
@@ -10,7 +10,6 @@ class UIEvents():
         self.uiSetCar = messaging.pub_sock('uiSetCar')
         self.uiPlaySound = messaging.pub_sock('uiPlaySound')
         self.uiGyroInfo = messaging.pub_sock('uiGyroInfo')
-        self.uiPedalInfo = messaging.pub_sock('uiPedalInfo')
         self.uiButtonStatus = messaging.sub_sock('uiButtonStatus', conflate=True)
         self.prev_cstm_message = ""
         self.prev_cstm_status = -1
@@ -42,11 +41,6 @@ class UIEvents():
         dat.gyroRoll = gyroroll
         dat.gyroYaw = gyroyaw 
         self.uiGyroInfo.send(dat.to_bytes())
-
-    def uiPedalInfoEvent(self,pedal_position):
-        dat = ui.UIPedalInfo.new_message()
-        dat.pedalpos = pedal_position
-        self.uiPedalInfo.send(dat.to_bytes())
     
     def uiSetCarEvent(self,car_folder,car_name, showLogo, showCar):
         dat = ui.UISetCar.new_message()

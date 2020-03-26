@@ -1,10 +1,6 @@
 from cereal import log
 from common.numpy_fast import clip, interp
-#from selfdrive.controls.lib.pid import PIController
-#PKA added derivative to the PID controller
-from selfdrive.controls.lib.pid_real import PIController
-import time
-import os
+from selfdrive.controls.lib.pid import PIController
 
 LongCtrlState = log.ControlsState.LongControlState
 
@@ -62,29 +58,13 @@ def long_control_state_trans(active, long_control_state, v_ego, v_target, v_pid,
 class LongControl():
   def __init__(self, CP, compute_gb):
     self.long_control_state = LongCtrlState.off  # initialized to off
-
-    kdBp = [0, 5., 22.,35.]
-    kdV = [0.01, 0.014, 0.018, 0.020]
-#TODO: use CP.longitudalTuning.kdBp and CP.longitudalTuning.kdV
-
     self.pid = PIController((CP.longitudinalTuning.kpBP, CP.longitudinalTuning.kpV),
                             (CP.longitudinalTuning.kiBP, CP.longitudinalTuning.kiV),
-                            (kdBp,kdV),
                             rate=RATE,
                             sat_limit=0.8,
                             convert=compute_gb)
-
     self.v_pid = 0.0
     self.last_output_gb = 0.0
-
-#PKA Save data for analysis - pretty bad way of storing the data, move to messaging and decouple from longcontrol..
-#    self.overshoot_data = []
-#    self.overshoot_file_path = '/data/overshoot_data'
-#    self.inputs_list = ['v_ego', 'v_target', 'v_target_future', 'v_cruise', 'pid_output',
-#                         'pid_i', 'pid_p', 'pid_d', 'active', 'time']
-#    if not os.path.exists(self.overshoot_file_path):
-#      with open(self.overshoot_file_path, "a") as f:
-#        f.write('{}\n'.format(self.inputs_list))
 
   def reset(self, v_pid):
     """Reset PID controller and change setpoint"""
@@ -93,8 +73,6 @@ class LongControl():
 
   def update(self, active, v_ego, brake_pressed, standstill, cruise_standstill, v_cruise, v_target, v_target_future, a_target, CP):
     """Update longitudinal control. This updates the state machine and runs a PID loop"""
-    
-
     # Actuation limits
     gas_max = interp(v_ego, CP.gasMaxBP, CP.gasMaxV)
     brake_max = interp(v_ego, CP.brakeMaxBP, CP.brakeMaxV)
@@ -148,12 +126,5 @@ class LongControl():
     self.last_output_gb = output_gb
     final_gas = clip(output_gb, 0., gas_max)
     final_brake = -clip(output_gb, -brake_max, 0.)
-
- #   if active:
- #     self.overshoot_data.append([v_ego, v_target, v_target_future, v_cruise, output_gb, self.pid.i, self.pid.p, self.pid.d, active, time.time()])
- #   if len(self.overshoot_data) > 60 * 100:  # every 30 seconds
- #     with open(self.overshoot_file_path, 'a') as f:
- #       f.write('{}\n'.format("\n".join([str(i) for i in self.overshoot_data])))
- #     self.overshoot_data = []
 
     return final_gas, final_brake

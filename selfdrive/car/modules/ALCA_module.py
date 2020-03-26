@@ -47,8 +47,8 @@ v1.0 - fixed angle move
 from common.numpy_fast import interp,clip
 from selfdrive.controls.lib.pid import PIController
 from common.realtime import sec_since_boot
-from selfdrive.services import service_list
-import selfdrive.messaging as messaging
+from cereal.services import service_list
+import cereal.messaging as messaging
 import numpy as np
 from cereal import tesla
 
@@ -232,7 +232,7 @@ class ALCAController():
           self.stop_ALCA(CS, True)
           return 0, False
       else:
-         blinker.override_frame_end = max(blinker.override_frame_end, frame + 25)
+        blinker.override_frame_end = max(blinker.override_frame_end, frame + 25)
 
     self.send_status(CS)
     return self.laneChange_enabled > 1

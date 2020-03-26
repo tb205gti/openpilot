@@ -1,13 +1,15 @@
+#pragma once
+
 #include "cereal/gen/c/ui.capnp.h"
 
-
+// TODO: this is also hardcoded in common/transformations/camera.py
 
 
 vec3 bb_car_space_to_full_frame(const  UIState *s, vec4 car_space_projective) {
   const UIScene *scene = &s->scene;
 
   // We'll call the car space point p.
- // First project into normalized image coordinates with the extrinsics matrix.
+  // First project into normalized image coordinates with the extrinsics matrix.
   const vec4 Ep4 = matvecmul(scene->extrinsic_matrix, car_space_projective);
 
   // The last entry is zero because of how we store E (to use matvecmul).
@@ -301,28 +303,10 @@ int bb_get_button_status( UIState *s, char *btn_name) {
 }
 
 void bb_draw_button( UIState *s, int btn_id) {
-/*
-0 = ALCA
-1 = ACCMode/PCCMode
-2 = Display
-3 = empty
-4 = MSG
-5 = Sound
-*/
-//  int btn_removed [6] = {0,0,1,0,1,1};
-//  int btn_disabled [6] = {1,1,1,1,1,1};
-
-  int btn_removed [6] = {0,0,0,0,0,0};
-  int btn_disabled [6] = {0,0,0,0,0,0};
-
-  if (btn_removed[btn_id] == 1){
-    return;
-  }
-
   const UIScene *scene = &s->scene;
 
   int viz_button_x = 0;
-  int viz_button_y = (box_y + (bdr_s*1.5)) + 10;
+  int viz_button_y = (box_y + (bdr_s*1.5)) + 20;
   int viz_button_w = 140;
   int viz_button_h = 140;
 
@@ -330,7 +314,7 @@ void bb_draw_button( UIState *s, int btn_id) {
   
   int delta_x = viz_button_w * 1.1;
   int delta_y = 0;
-  int dx1 = 40;
+  int dx1 = 200;
   int dx2 = 190;
   int dy = 0;
 
@@ -352,43 +336,35 @@ void bb_draw_button( UIState *s, int btn_id) {
     viz_button_x +=  (btn_id) * delta_x;
     viz_button_y += btn_id * delta_y + dy;
   }
-
+  
 
   btn_text = s->b.btns[btn_id].btn_label;
   btn_text2 = s->b.btns[btn_id].btn_label2;
-
+  
   if (strcmp(btn_text,"")==0) {
     s->b.btns_r[btn_id] = 0;
   } else {
     s->b.btns_r[btn_id]= (int)((viz_button_w + viz_button_h)/4);
   }
-
   s->b.btns_x[btn_id]=viz_button_x + s->b.btns_r[btn_id];
   s->b.btns_y[btn_id]=viz_button_y + s->b.btns_r[btn_id];
-
   if (s->b.btns_r[btn_id] == 0) {
     return;
   }
-
-//hackish..
-
-  if (btn_disabled[btn_id] == 1 && s->b.btns_status[btn_id] != 2){
-    return;
-  }
-
+  
   nvgBeginPath(s->vg);
-  nvgRoundedRect(s->vg, viz_button_x, viz_button_y, viz_button_w, viz_button_h, 60);
-  nvgStrokeWidth(s->vg, 8);
+  nvgRoundedRect(s->vg, viz_button_x, viz_button_y, viz_button_w, viz_button_h, 80);
+  nvgStrokeWidth(s->vg, 12);
 
   
-  if (s->b.btns_status[btn_id] == 0) {
+  if (s->b.btns_status[btn_id] ==0) {
     //disabled - red
     nvgStrokeColor(s->vg, nvgRGBA(255, 0, 0, 200));
     if (strcmp(btn_text2,"")==0) {
       btn_text2 = (char *)"Off";
     }
   } else
-  if (s->b.btns_status[btn_id] == 1) {
+  if (s->b.btns_status[btn_id] ==1) {
     //enabled - white
     nvgStrokeColor(s->vg, nvgRGBA(255,255,255,200));
     nvgStrokeWidth(s->vg, 4);
@@ -396,14 +372,14 @@ void bb_draw_button( UIState *s, int btn_id) {
       btn_text2 = (char *)"Ready";
     }
   } else
-  if (s->b.btns_status[btn_id] == 2) {
+  if (s->b.btns_status[btn_id] ==2) {
     //active - green
     nvgStrokeColor(s->vg, nvgRGBA(28, 204,98,200));
     if (strcmp(btn_text2,"")==0) {
       btn_text2 = (char *)"Active";
     }
   } else
-  if (s->b.btns_status[btn_id] == 9) {
+  if (s->b.btns_status[btn_id] ==9) {
     //available - thin white
     nvgStrokeColor(s->vg, nvgRGBA(200,200,200,40));
     nvgStrokeWidth(s->vg, 4);
@@ -411,23 +387,23 @@ void bb_draw_button( UIState *s, int btn_id) {
       btn_text2 = (char *)"";
     }
   } else {
-      //others - orange
-      nvgStrokeColor(s->vg, nvgRGBA(255, 188, 3, 200));
-      if (strcmp(btn_text2,"")==0) {
-        btn_text2 = (char *)"Alert";
-      }
+    //others - orange
+    nvgStrokeColor(s->vg, nvgRGBA(255, 188, 3, 200));
+    if (strcmp(btn_text2,"")==0) {
+      btn_text2 = (char *)"Alert";
+    }
   }
 
   nvgStroke(s->vg);
 
   nvgTextAlign(s->vg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE);
   nvgFontFace(s->vg, "sans-regular");
-  nvgFontSize(s->vg, 10*2.5);
+  nvgFontSize(s->vg, 14*2.5);
   nvgFillColor(s->vg, nvgRGBA(255, 255, 255, 200));
   nvgText(s->vg, viz_button_x+viz_button_w/2, viz_button_y + 112, btn_text2, NULL);
 
   nvgFontFace(s->vg, "sans-semibold");
-  nvgFontSize(s->vg, 24*2.5);
+  nvgFontSize(s->vg, 28*2.5);
   nvgFillColor(s->vg, nvgRGBA(255, 255, 255, 255));
   nvgText(s->vg, viz_button_x+viz_button_w/2, viz_button_y + 85,btn_text, NULL);
 }
@@ -1002,7 +978,6 @@ void ui_draw_vision_grid( UIState *s) {
 }
 
 void bb_ui_draw_logo( UIState *s) {
-  return;
   if ((s->status != STATUS_DISENGAGED) && (s->status != STATUS_STOPPED)) { //(s->status != STATUS_DISENGAGED) {//
     return;
   }
@@ -1186,10 +1161,11 @@ void bb_ui_draw_UI( UIState *s) {
 	  const int bb_dmr_w = 180;
 	  const int bb_dmr_x = scene->ui_viz_rx + scene->ui_viz_rw - bb_dmr_w - (bdr_s*2) ; 
 	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
-//    bb_ui_draw_measures_left(s,bb_dml_x, bb_dml_y, bb_dml_w );
-//    bb_ui_draw_measures_right(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
+    bb_ui_draw_measures_left(s,bb_dml_x, bb_dml_y, bb_dml_w );
+    bb_ui_draw_measures_right(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
+    bb_ui_draw_logo(s);
 	 }
    if (s->b.tri_state_switch ==2) {
 	 	const UIScene *scene = &s->scene;
@@ -1202,6 +1178,7 @@ void bb_ui_draw_UI( UIState *s) {
 	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
+    bb_ui_draw_logo(s);
 	 }
 	 if (s->b.tri_state_switch ==3) {
     //we now use the state 3 for minimalistic data alerts
@@ -1260,15 +1237,13 @@ void bb_ui_init(UIState *s) {
     s->b.uiButtonStatus_sock = PubSocket::create(s->b.ctx, "uiButtonStatus"); //zsock_new_pub("@tcp://127.0.0.1:8204");
     s->b.gps_sock = SubSocket::create(s->b.ctx, "gpsLocationExternal"); //zsock_new_sub(">tcp://127.0.0.1:8032","");
     s->b.uiGyroInfo_sock = SubSocket::create(s->b.ctx, "uiGyroInfo"); //zsock_new_sub(">tcp://127.0.0.1:8207", "");
-    s->b.uiPedalInfo_sock = SubSocket::create(s->b.ctx, "uiPedalInfo");
     s->b.poller = Poller::create({
                               s->b.uiButtonInfo_sock,
                               s->b.uiCustomAlert_sock,
                               s->b.uiSetCar_sock,
                               s->b.uiPlaySound_sock,
                               s->b.gps_sock,
-                              s->b.uiGyroInfo_sock,
-                              s->b.uiPedalInfo_sock
+                              s->b.uiGyroInfo_sock
                              });
 
     //BB Load Images
@@ -1367,20 +1342,20 @@ void  bb_ui_poll_update( UIState *s) {
           if ((strcmp(s->b.car_model,(char *) datad.icCarName.str) != 0) || (strcmp(s->b.car_folder, (char *) datad.icCarFolder.str) !=0)) {
             strcpy(s->b.car_model, (char *) datad.icCarName.str);
             strcpy(s->b.car_folder, (char *) datad.icCarFolder.str);
-            LOGW("Car folder set (%s)", s->b.car_folder);
+            //LOGW("Car folder set (%s)", s->b.car_folder);
 
             if (strcmp(s->b.car_folder,"tesla")==0) {
               s->b.img_logo = nvgCreateImage(s->vg, "../assets/img_spinner_comma.png", 1);
               s->b.img_logo2 = nvgCreateImage(s->vg, "../assets/img_spinner_comma2.png", 1);
-              LOGW("Spinning logo set for Tesla");
+              //LOGW("Spinning logo set for Tesla");
             } else if (strcmp(s->b.car_folder,"honda")==0) {
               s->b.img_logo = nvgCreateImage(s->vg, "../assets/img_spinner_comma.honda.png", 1);
               s->b.img_logo2 = nvgCreateImage(s->vg, "../assets/img_spinner_comma.honda2.png", 1);
-              LOGW("Spinning logo set for Honda");
+              //LOGW("Spinning logo set for Honda");
             } else if (strcmp(s->b.car_folder,"toyota")==0) {
               s->b.img_logo = nvgCreateImage(s->vg, "../assets/img_spinner_comma.toyota.png", 1);
               s->b.img_logo2 = nvgCreateImage(s->vg, "../assets/img_spinner_comma.toyota2.png", 1);
-              LOGW("Spinning logo set for Toyota");
+              //LOGW("Spinning logo set for Toyota");
             };
           }
           if (datad.icShowCar == 1) {
@@ -1453,18 +1428,6 @@ void  bb_ui_poll_update( UIState *s) {
           s->b.gyroRoll = datad.gyroRoll;
           s->b.gyroYaw = datad.gyroYaw;
           
-          capn_free(&ctx);
-        }
-        if (sock == s->b.uiPedalInfo_sock){
-          //pedalinfo sock
-          struct capn ctx;
-          capn_init_mem(&ctx, (uint8_t*)msg->getData(), msg->getSize(), 0);
-          cereal_UIPedalInfo_ptr stp;
-          stp.p = capn_getp(capn_root(&ctx), 0, 1);
-          struct cereal_UIPedalInfo datad;
-          cereal_read_UIPedalInfo(&datad, stp);
-          s->b.pedalPos = datad.pedalpos;
-
           capn_free(&ctx);
         }
         delete msg; 

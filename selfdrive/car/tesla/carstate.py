@@ -1,5 +1,5 @@
 from common.kalman.simple_kalman import KF1D
-from selfdrive.can.parser import CANParser
+from opendbc.can.parser import CANParser
 from selfdrive.config import Conversions as CV
 from selfdrive.car.tesla.ACC_module import ACCMode
 from selfdrive.car.tesla.PCC_module import PCCModes
@@ -7,6 +7,7 @@ from selfdrive.car.tesla.values import CAR, DBC
 from selfdrive.car.modules.UIBT_module import UIButtons
 from selfdrive.car.modules.UIEV_module import UIEvents
 from selfdrive.car.tesla.readconfig import read_config_file
+from selfdrive.car.interfaces import CarStateBase
 import os
 import subprocess
 from common.params import read_db, write_db
@@ -150,7 +151,6 @@ def get_can_signals(CP):
   return signals, checks
 
 def get_epas_can_signals(CP):
-# this function generates lists for signal, messages and initial values
   signals = [
       ("EPAS_torsionBarTorque", "EPAS_sysStatus", 0), # Used in interface.py
       ("EPAS_eacStatus", "EPAS_sysStatus", 0),
@@ -158,11 +158,16 @@ def get_epas_can_signals(CP):
       ("EPAS_handsOnLevel", "EPAS_sysStatus", 0),
       ("EPAS_steeringFault", "EPAS_sysStatus", 0),
       ("EPAS_internalSAS",  "EPAS_sysStatus", 0), #BB see if this works better than STW_ANGLHP_STAT for angle
+      ("SDM_bcklDrivStatus", "SDM1", 0),
+      ("LoBm_On_Rq","BODY_R1" , 0),
+      ("HiBm_On", "BODY_R1", 0),
+      ("LgtSens_Night", "BODY_R1", 0),
   ]
 
   checks = [
       ("EPAS_sysStatus", 12), #JCT Actual message freq is 1.3 Hz (0.76 sec)
   ]
+
 
   #checks = []
   return signals, checks
@@ -179,20 +184,9 @@ def get_pedal_can_signals(CP):
   checks = []
   return signals, checks
 
-def get_can_parser(CP,mydbc):
-  signals, checks = get_can_signals(CP)
-  return CANParser(mydbc, signals, checks, 0)
-
-def get_epas_parser(CP,epascan):
-  signals, checks = get_epas_can_signals(CP)
-  return CANParser(DBC[CP.carFingerprint]['pt']+"_epas", signals, checks, epascan)
-
-def get_pedal_parser(CP):
-  signals, checks = get_pedal_can_signals(CP)
-  return CANParser(DBC[CP.carFingerprint]['pt']+"_pedal", signals, checks, 2)
-
-class CarState():
+class CarState(CarStateBase):
   def __init__(self, CP):
+    super().__init__(CP)
     self.speed_control_enabled = 0
     self.CL_MIN_V = 8.9
     self.CL_MAX_A = 20.
@@ -207,6 +201,7 @@ class CarState():
     ### START OF MAIN CONFIG OPTIONS ###
     ### Do NOT modify here, modify in /data/bb_openpilot.cfg and reboot
     self.forcePedalOverCC = True
+    self.usesApillarHarness = False
     self.enableHSO = True
     self.enableALCA = True
     self.enableDasEmulation = True
@@ -420,6 +415,28 @@ class CarState():
     self.ahbLoBeamOn = 0
     self.ahbHiBeamOn = 0
     self.ahbNightMode = 0
+
+  @staticmethod
+  def get_can_parser(CP):
+    signals, checks = get_can_signals(CP)
+    return CANParser(DBC[CP.carFingerprint]['pt'], signals, checks, 0)
+
+  @staticmethod
+  def get_can_parser2(CP,mydbc):
+    signals, checks = get_can_signals(CP)
+    return CANParser(mydbc, signals, checks, 0)
+
+  @staticmethod
+  def get_epas_parser(CP,epascan):
+    signals, checks = get_epas_can_signals(CP)
+    return CANParser(DBC[CP.carFingerprint]['pt']+"_epas", signals, checks, epascan)
+
+  @staticmethod
+  def get_pedal_parser(CP,pedalcan):
+    signals, checks = get_pedal_can_signals(CP)
+    return CANParser(DBC[CP.carFingerprint]['pt']+"_pedal", signals, checks, pedalcan)
+
+
    
   def config_ui_buttons(self, pcc_available, pcc_blocked_by_acc_mode):
     if pcc_available:
@@ -489,7 +506,10 @@ class CarState():
     # ******************* parse out can *******************
     self.door_all_closed = not any([cp.vl["GTW_carState"]['DOOR_STATE_FL'], cp.vl["GTW_carState"]['DOOR_STATE_FR'],
                                cp.vl["GTW_carState"]['DOOR_STATE_RL'], cp.vl["GTW_carState"]['DOOR_STATE_RR']])  #JCT
-    self.seatbelt = cp.vl["SDM1"]['SDM_bcklDrivStatus']
+    if self.usesApillarHarness:
+      self.seatbelt = epas_cp.vl["SDM1"]['SDM_bcklDrivStatus']
+    else:
+      self.seatbelt = cp.vl["SDM1"]['SDM_bcklDrivStatus']
     #self.seatbelt = cp.vl["SDM1"]['SDM_bcklDrivStatus'] and cp.vl["GTW_status"]['GTW_driverPresent']
     if (cp.vl["GTW_carConfig"]['GTW_performanceConfig']) and (cp.vl["GTW_carConfig"]['GTW_performanceConfig'] > 0):
       prev_teslaModel = self.teslaModel
@@ -533,13 +553,18 @@ class CarState():
       self.apFollowTimeInS =  1 + cp.vl["MCU_chassisControl"]["MCU_fcwSensitivity"] * 0.5
       self.keepEonOff = cp.vl["MCU_chassisControl"]["MCU_ldwEnable"] == 1
       self.alcaEnabled = cp.vl["MCU_chassisControl"]["MCU_pedalSafetyEnable"] == 1
-      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] != 1 and self.useTeslaMapData
+      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] == 1 and self.useTeslaMapData
       #AHB info
       self.ahbHighBeamStalkPosition = cp.vl["STW_ACTN_RQ"]["HiBmLvr_Stat"]
       self.ahbEnabled = cp.vl["MCU_chassisControl"]["MCU_ahlbEnable"]
-      self.ahbLoBeamOn = cp.vl["BODY_R1"]["LoBm_On_Rq"]
-      self.ahbHiBeamOn = cp.vl["BODY_R1"]["HiBm_On"]
-      self.ahbNightMode = cp.vl["BODY_R1"]["LgtSens_Night"]
+      if self.usesApillarHarness:
+        self.ahbLoBeamOn = epas_cp.vl["BODY_R1"]["LoBm_On_Rq"]
+        self.ahbHiBeamOn = epas_cp.vl["BODY_R1"]["HiBm_On"]
+        self.ahbNightMode = epas_cp.vl["BODY_R1"]["LgtSens_Night"]
+      else:
+        self.ahbLoBeamOn = cp.vl["BODY_R1"]["LoBm_On_Rq"]
+        self.ahbHiBeamOn = cp.vl["BODY_R1"]["HiBm_On"]
+        self.ahbNightMode = cp.vl["BODY_R1"]["LgtSens_Night"]
 
     usu = cp.vl['UI_gpsVehicleSpeed']["UI_userSpeedOffsetUnits"]
     if usu == 1:
@@ -571,8 +596,7 @@ class CarState():
     if self.baseMapSpeedLimitMPS > 0 and (speed_limit_type != 0x1F or self.baseMapSpeedLimitMPS <= 5.56):
       self.speed_limit_ms = self.baseMapSpeedLimitMPS # this one is earlier than the actual sign but can also be unreliable, so we ignore it on SNA at higher speeds
     else:
-      mppSpeedLimit = cp.vl['UI_gpsVehicleSpeed']["UI_mppSpeedLimit"]
-      self.speed_limit_ms = mppSpeedLimit * map_speed_uom_to_ms
+      self.speed_limit_ms = cp.vl['UI_gpsVehicleSpeed']["UI_mppSpeedLimit"] * map_speed_uom_to_ms
     self.DAS_fusedSpeedLimit = self._convert_to_DAS_fusedSpeedLimit(self.speed_limit_ms * map_speed_ms_to_uom, speed_limit_type)
 
     self.compute_speed()
