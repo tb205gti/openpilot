@@ -22,11 +22,11 @@ RESET_PID_ON_DISENGAGE = False
 
 # TODO: these should end up in values.py at some point, probably variable by trim
 # Accel limits
-MAX_RADAR_DISTANCE = 120. #max distance to take in consideration radar reading
+MAX_RADAR_DISTANCE = 130. #max distance to take in consideration radar reading
 MAX_PEDAL_VALUE = 112.
 PEDAL_HYST_GAP = 1.0  # don't change pedal command for small oscilalitons within this value
 # Cap the pedal to go from 0 to max in 4 seconds
-PEDAL_MAX_UP = MAX_PEDAL_VALUE * _DT / 4
+PEDAL_MAX_UP = MAX_PEDAL_VALUE * _DT / 2
 # Cap the pedal to go from max to 0 in 0.4 seconds
 PEDAL_MAX_DOWN = MAX_PEDAL_VALUE * _DT / 0.4
 
@@ -182,6 +182,10 @@ class PCCController():
         if self.LoC.pid:
           self.LoC.pid.p = data['p']
           self.LoC.pid.i = data['i']
+          if 'd' not in data:
+            self.Loc.pid.d = 0.01
+          else:
+            self.LoC.pid.d = data['d']
           self.LoC.pid.f = data['f']
       else:
         print("self.LoC not initialized!")
@@ -193,6 +197,7 @@ class PCCController():
     data = {}
     data['p'] = pid.p
     data['i'] = pid.i
+    data['d'] = pid.d
     data['f'] = pid.f
     try:
       with open(V_PID_FILE , 'w') as outfile :
@@ -663,35 +668,35 @@ def _accel_limit_multiplier(CS, lead):
   """Limits acceleration in the presence of a lead car. The further the lead car
   is, the more accel is allowed. Range: 0 to 1, so that it can be multiplied
   with other accel limits."""
+  if not _is_present(lead):
+    return 1.
+
   accel_by_speed = OrderedDict([
     # (speed m/s, decel)
-      (0.,  0.95),  #   0 kmh
-      (10., 0.95),  #  35 kmh
-      (20., 0.925),  #  72 kmh
-      (30., 0.875)]) # 107 kmh
+      (0.,  0.985),  #   0 kmh
+      (10., 0.975),  #  35 kmh
+      (20., 0.95),  #  72 kmh
+      (30., 0.9)]) # 107 kmh
   if CS.teslaModel in ["SP","SPD"]:
       accel_by_speed = OrderedDict([
         # (speed m/s, decel)
-        (0.,  0.95),  #   0 kmh
-        (10., 0.95),  #  35 kmh
-        (20., 0.925),  #  72 kmh
-        (30., 0.875)]) # 107 kmh
+        (0.,  0.985),  #   0 kmh
+        (10., 0.975),  #  35 kmh
+        (20., 0.95),  #  72 kmh
+        (30., 0.9)]) # 107 kmh
   accel_mult = _interp_map(CS.v_ego, accel_by_speed)
-  if _is_present(lead):
-    safe_dist_m = _safe_distance_m(CS.v_ego,CS)
-    accel_multipliers = OrderedDict([
-      # (distance in m, acceleration fraction)
-      (0.6 * safe_dist_m, 0.15),
-      (1.0 * safe_dist_m, 0.2),
-      (3.0 * safe_dist_m, 0.4)])
-    vrel_multipliers = OrderedDict([
-      # vrel m/s, accel mult
-      (0. , 1.),
-      (10., 1.5)])
 
-    return min(accel_mult * _interp_map(lead.vRel, vrel_multipliers) * _interp_map(lead.dRel, accel_multipliers),1.0)
-  else:
-    return min(accel_mult * 0.4, 1.0)
+  safe_dist_m = _safe_distance_m(CS.v_ego,CS)
+  accel_multipliers = OrderedDict([
+    # (distance in m, acceleration fraction)
+    (0.6 * safe_dist_m, 0.15),
+    (1.0 * safe_dist_m, 0.2),
+    (3.0 * safe_dist_m, 0.4)])
+  vrel_multipliers = OrderedDict([
+    # vrel m/s, accel mult
+    (0. , 1.),
+    (10., 1.5)])
+  return min(accel_mult * _interp_map(lead.vRel, vrel_multipliers) * _interp_map(lead.dRel, accel_multipliers),1.0)
 
 def _decel_limit(accel_min,v_ego, lead, CS, max_speed_kph):
   max_speed_mult = 1.
