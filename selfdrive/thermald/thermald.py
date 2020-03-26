@@ -26,8 +26,8 @@ ThermalStatus = log.ThermalData.ThermalStatus
 NetworkType = log.ThermalData.NetworkType
 NetworkStrength = log.ThermalData.NetworkStrength
 CURRENT_TAU = 15.   # 15s time constant
-DAYS_NO_CONNECTIVITY_MAX = 14  # do not allow to engage after 2 weeks without internet
-DAYS_NO_CONNECTIVITY_PROMPT = 7  # send an offroad prompt after 10 days with no internet
+DAYS_NO_CONNECTIVITY_MAX = 92  # do not allow to engage after 2 weeks without internet
+DAYS_NO_CONNECTIVITY_PROMPT = 31  # send an offroad prompt after 10 days with no internet
 
 LEON = False
 last_eon_fan_val = None
@@ -427,7 +427,11 @@ def thermald_thread():
     thermal_status_prev = thermal_status
     usb_power_prev = usb_power
     fw_version_match_prev = fw_version_match
-    should_start_prev = should_start
+    should_start_prev = should_start 
+
+    if (count % int(10) == 0):
+      print('BatteryLevel {} - BatteryCurrent: {} A'.format(msg.thermal.batteryPercent, (msg.thermal.batteryCurrent/1000000)*-1 ))
+
 
     # report to server once per minute
     if (count % int(60. / DT_TRML)) == 0:

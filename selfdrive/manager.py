@@ -103,7 +103,9 @@ if not prebuilt:
         if line.startswith(prefix):
           i = int(line[len(prefix):])
           if spinner is not None:
-            spinner.update("%d" % (50.0 * (i / TOTAL_SCONS_NODES)))
+            spinText = carSettings.spinnerText
+            #spinner.update(spinText % (100.0 * (i + 1) / len(managed_processes),))
+            spinner.update(spinText % (50.0 * (i / TOTAL_SCONS_NODES)))
         elif len(line):
           print(line.decode('utf8'))
       except Exception:
