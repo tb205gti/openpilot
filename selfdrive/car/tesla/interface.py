@@ -9,8 +9,6 @@ from selfdrive.car.tesla.values import CruiseButtons, CM, BP, AH, CAR,DBC
 from common.params import read_db
 from selfdrive.car import STD_CARGO_KG, scale_rot_inertia, scale_tire_stiffness, is_ecu_disconnected, gen_empty_fingerprint
 from selfdrive.car.tesla.readconfig import CarSettings
-import cereal.messaging as messaging
-from cereal.services import service_list
 from selfdrive.controls.lib.planner import _A_CRUISE_MAX_V
 from selfdrive.car.interfaces import CarInterfaceBase
 
@@ -223,13 +221,13 @@ class CarInterface(CarInterfaceBase):
     ret.steerMaxBP = [0.,15.]  # m/s
     ret.steerMaxV = [420.,420.]   # max steer allowed
 
-    ret.gasMaxBP = [0., 25]  # m/s
+    ret.gasMaxBP = [0., 55.]  # m/s
     ret.gasMaxV = [0.2, 0.5] #if ret.enableGasInterceptor else [0.] # max gas allowed
-    ret.brakeMaxBP = [0., 20.]  # m/s
-    ret.brakeMaxV = [1., 1.]   # max brake allowed - BB: since we are using regen, make this even
+    ret.brakeMaxBP = [0.]  # m/s
+    ret.brakeMaxV = [1.]   # max brake allowed - BB: since we are using regen, make this even
 
-    ret.longitudinalTuning.deadzoneBP = [0., 9.] #BB: added from Toyota to start pedal work; need to tune
-    ret.longitudinalTuning.deadzoneV = [0., 0.] #BB: added from Toyota to start pedal work; need to tune; changed to 0 for now
+    ret.longitudinalTuning.deadzoneBP = [0.]
+    ret.longitudinalTuning.deadzoneV = [0.]
 
     ret.stoppingControl = True
     ret.openpilotLongitudinalControl = True
