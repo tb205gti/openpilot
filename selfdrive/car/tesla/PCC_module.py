@@ -6,7 +6,7 @@ from common.numpy_fast import clip, interp
 from selfdrive.car.tesla.values import CruiseState, CruiseButtons
 from selfdrive.config import Conversions as CV
 from selfdrive.controls.lib.speed_smoother import speed_smoother
-from selfdrive.controls.lib.planner import calc_cruise_accel_limits
+from selfdrive.controls.lib.planner import calc_cruise_accel_limits, limit_accel_in_turns
 import cereal.messaging as messaging
 import time
 import math
@@ -367,7 +367,7 @@ class PCCController():
     accel_limits[1] *= _accel_limit_multiplier(CS, self.lead_1)
     accel_limits[0] = _decel_limit(accel_limits[0], CS.v_ego, self.lead_1, CS, self.pedal_speed_kph)
     jerk_limits = [min(-0.1, accel_limits[0]/2.), max(0.1, accel_limits[1]/2.)]  # TODO: make a separate lookup for jerk tuning
-    #accel_limits = limit_accel_in_turns(v_ego, CS.angle_steers, accel_limits, CS.CP)
+    accel_limits = limit_accel_in_turns(v_ego, CS.angle_steers, accel_limits, CS.CP)
 
     output_gb = 0
     ####################################################################
@@ -380,7 +380,7 @@ class PCCController():
       enabled = self.enable_pedal_cruise and self.LoC.long_control_state in [LongCtrlState.pid, LongCtrlState.stopping]
       # determine if pedal is pressed by human
       self.prev_accelerator_pedal_pressed = self.accelerator_pedal_pressed
-      self.accelerator_pedal_pressed = CS.pedal_interceptor_value > 10
+      self.accelerator_pedal_pressed = CS.pedal_interceptor_value > 5
       #reset PID if we just lifted foot of accelerator
       if (not self.accelerator_pedal_pressed) and self.prev_accelerator_pedal_pressed:
         self.reset(CS.v_ego)
@@ -397,11 +397,10 @@ class PCCController():
         # cruise speed can't be negative even if user is distracted
         self.v_pid = max(self.v_pid, 0.)
 
-        jerk_min, jerk_max = _jerk_limits(CS.v_ego, self.lead_1, self.v_pid * CV.MS_TO_KPH, self.lead_last_seen_time_ms, CS)
         self.v_cruise, self.a_cruise = speed_smoother(self.v_acc_start, self.a_acc_start,
                                                       self.v_pid,
                                                       accel_limits[1], accel_limits[0],
-                                                      jerk_limits[1], jerk_limits[0], #jerk_max, jerk_min,
+                                                      jerk_limits[1], jerk_limits[0],
                                                       _DT_MPC)
         
         # cruise speed can't be negative even is user is distracted
