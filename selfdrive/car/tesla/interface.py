@@ -141,55 +141,23 @@ class CarInterface(CarInterfaceBase):
       ret.lateralTuning.pid.kf = 0.00006 # Initial test value TODO: investigate FF steer control for Model S?
       ret.steerActuatorDelay = 0.2
 
-      #ret.steerReactance = 1.0
-      #ret.steerInductance = 1.0
-      #ret.steerResistance = 1.0
-          
-# Kp and Ki for the longitudinal control
-      if teslaModel == "S":
-        ret.longitudinalTuning.kpBP = [0., 5., 22., 35.]
-        ret.longitudinalTuning.kpV = [0.50, 0.45, 0.45, 0.4]
-        ret.longitudinalTuning.kiBP = [0., 5., 10., 35.]
-        ret.longitudinalTuning.kiV = [0.01,0.01,0.01,0.01]
-     #   ret.longitudinalTuning.kdBP = [0, 20., 25., 35]
-     #   ret.longitudinalTuning.kdV = [0.01, 0.01, 0.01, 0.01]
-
-      elif teslaModel == "SP":
+      # Kp and Ki for the longitudinal control
+      if teslaModel == "SP":
         ret.longitudinalTuning.kpBP = [0., 5., 22., 35.] # 0km/h, 18 km/h, 80, 128km/h
+        ret.longitudinalTuning.kpV = [0.3, 0.3, 0.31, 0.32]
         ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
-
-        ret.longitudinalTuning.kpV = [0.3, 0.3, 0.4, 0.4]
-        ret.longitudinalTuning.kiV = [0.2, 0.3, 0.4, 0.4]
-
-#        ret.longitudinalTuning.kiV = [0.00835,0.00817, 0.00785, 0.00777]
-     #   ret.longitudinalTuning.kdBP = [0, 5., 22., 35]
-     #   ret.longitudinalTuning.kdV = [0.010, 0.010, 0.010, 0.01]
-
-      elif teslaModel == "SD":
-        ret.longitudinalTuning.kpBP = [0., 5., 22., 35.]
-        ret.longitudinalTuning.kpV = [0.50, 0.45, 0.45, 0.4]
-        ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
-        ret.longitudinalTuning.kiV = [0.01,0.01,0.01]
-      #  ret.longitudinalTuning.kdBP = [0, 20., 25., 35]
-      #  ret.longitudinalTuning.kdV = [0.01, 0.01, 0.01, 0.01]
-
-      elif teslaModel == "SPD":
-        ret.longitudinalTuning.kpBP = [0., 5., 22., 35.]
-        ret.longitudinalTuning.kpV = [0.375, 0.325, 0.325, 0.325]
-        ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
-        ret.longitudinalTuning.kiV = [0.00915,0.00825,0.00750,0.00725]
-       # ret.longitudinalTuning.kdBP = [0, 20., 25., 35]
-       # ret.longitudinalTuning.kdV = [0.01, 0.01, 0.01, 0.01]
-
+        ret.longitudinalTuning.kiV = [0.07, 0.07, 0.075, 0.077]
+      #elif teslaModel == "SD":
+        # TODO
+      #elif teslaModel == "SPD":
+        # TODO
       else:
-        #use S numbers if we can't match anything
+        if teslaModel != "S":
+          print("Tesla Model " + str(teslaModel) + " kp and ki params not implemented, using Model S values")
         ret.longitudinalTuning.kpBP = [0., 5., 22., 35.]
-        ret.longitudinalTuning.kpV = [0.375, 0.325, 0.3, 0.3]
+        ret.longitudinalTuning.kpV = [0.3, 0.3, 0.3, 0.3]
         ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
         ret.longitudinalTuning.kiV = [0.08,0.08,0.08,0.08]
-   #     ret.longitudinalTuning.kdBP = [0, 20., 25., 35]
-   #     ret.longitudinalTuning.kdV = [0.01, 0.01, 0.01, 0.01]
-
     else:
       raise ValueError("unsupported car %s" % candidate)
 

@@ -67,8 +67,8 @@ class PIController():
     self.sat_count = 0.0
     self.saturated = False
     self.control = 0
-    self.past_5_errors_avg = 0
-    self.past_5_errors.reset()
+    self.past_errors_avg = 0
+    self.past_errors.reset()
 
   def update(self, setpoint, measurement, speed=0.0, check_saturation=True, override=False, feedforward=0., deadzone=0., freeze_integrator=False):
     self.speed = speed
@@ -83,14 +83,15 @@ class PIController():
 
     self.f = feedforward * self.k_f
     self.d = 0.0
+    if self.past_errors.no_items == self.past_errors.length:
+      self.d = self.k_d * ((error - self.past_errors_avg) / self.d_rate)
+    self.past_errors_avg = self.past_errors.add(error)
 
     if override:
       self.i -= self.i_unwind_rate * float(np.sign(self.i))
     else:
       i = self.i + error * self.k_i * self.i_rate
-      if self.past_5_errors.no_items == self.past_5_errors.length:
-        self.d = self.k_d * ((error - self.past_5_errors_avg) / self.d_rate)
-      control = self.p + self.f + i
+      control = self.p + self.f + i + self.d
 
       if self.convert is not None:
         control = self.convert(control, speed=self.speed)
@@ -101,12 +102,11 @@ class PIController():
           (error <= 0 and (control >= self.neg_limit or i > 0.0))) and \
          not freeze_integrator:
         self.i = i
-
-    self.past_5_errors_avg = self.past_5_errors.add(error)
-
-    control = self.p + self.f + self.i + self.d #adds the derivatoive gain to the control output
-    if self.convert is not None:
-      control = self.convert(control, speed=self.speed)
+      else:
+        # re-calculate with unchanged i
+        control = self.p + self.f + self.i + self.d
+        if self.convert is not None:
+          control = self.convert(control, speed=self.speed)
 
     if check_saturation:
       self.saturated = self._check_saturation(control, override, error)
