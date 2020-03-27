@@ -25,7 +25,7 @@ RESET_PID_ON_DISENGAGE = False
 MAX_RADAR_DISTANCE = 130. #max distance to take in consideration radar reading
 MAX_PEDAL_VALUE = 112.
 PEDAL_HYST_GAP = 1.0  # don't change pedal command for small oscilalitons within this value
-# Cap the pedal to go from 0 to max in 4 seconds
+# Cap the pedal to go from 0 to max in 2 seconds
 PEDAL_MAX_UP = MAX_PEDAL_VALUE * _DT / 2
 # Cap the pedal to go from max to 0 in 0.4 seconds
 PEDAL_MAX_DOWN = MAX_PEDAL_VALUE * _DT / 0.4
@@ -361,11 +361,9 @@ class PCCController():
         self.continuous_lead_sightings += 1
       else:
         self.continuous_lead_sightings = 0
-      
 
     v_ego = CS.v_ego
-    following = self.lead_1.status and self.lead_1.dRel < MAX_RADAR_DISTANCE and self.lead_1.vLeadK > v_ego and self.lead_1.aLeadK > 0.0
-    accel_limits = [float(x) for x in calc_cruise_accel_limits(v_ego)]
+    accel_limits = [float(x) for x in calc_cruise_accel_limits(v_ego, _is_present(self.lead_1))]
     accel_limits[1] *= _accel_limit_multiplier(CS, self.lead_1)
     accel_limits[0] = _decel_limit(accel_limits[0], CS.v_ego, self.lead_1, CS, self.pedal_speed_kph)
     jerk_limits = [min(-0.1, accel_limits[0]/2.), max(0.1, accel_limits[1]/2.)]  # TODO: make a separate lookup for jerk tuning
