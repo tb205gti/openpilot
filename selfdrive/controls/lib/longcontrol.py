@@ -64,7 +64,7 @@ class LongControl():
     self.long_control_state = LongCtrlState.off  # initialized to off
 
     kdBp = [0, 5., 22.,35.]
-    kdV = [0.01, 0.014, 0.018, 0.020]
+    kdV = [0.02, 0.02, 0.022, 0.025]
 #TODO: use CP.longitudalTuning.kdBp and CP.longitudalTuning.kdV
 
     self.pid = PIController((CP.longitudinalTuning.kpBP, CP.longitudinalTuning.kpV),
