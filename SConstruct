@@ -12,34 +12,76 @@ AddOption('--asan',
           help='turn on ASAN')
 
 arch = subprocess.check_output(["uname", "-m"], encoding='utf8').rstrip()
+is_tbp = os.path.isfile('/data/tinkla_buddy_pro')
 if platform.system() == "Darwin":
   arch = "Darwin"
 
+webcam = bool(ARGUMENTS.get("use_webcam", 0))
+
 if arch == "aarch64":
-  lenv = {
-    "LD_LIBRARY_PATH": '/data/data/com.termux/files/usr/lib',
-    "PATH": os.environ['PATH'],
-    "ANDROID_DATA": os.environ['ANDROID_DATA'],
-    "ANDROID_ROOT": os.environ['ANDROID_ROOT'],
-  }
+  if is_tbp:
+    webcam=True
+    lenv = {
+      "LD_LIBRARY_PATH": '/usr/lib:/usr/local/lib/:/usr/lib/aarch64-linux-gnu',
+      "PATH": os.environ['PATH'],
+      "ANDROID_DATA": "/data",
+      "ANDROID_ROOT": "/",
+    }
+  else:
+    lenv = {
+      "LD_LIBRARY_PATH": '/data/data/com.termux/files/usr/lib',
+      "PATH": os.environ['PATH'],
+      "ANDROID_DATA": os.environ['ANDROID_DATA'],
+      "ANDROID_ROOT": os.environ['ANDROID_ROOT'],
+    }
 
   cpppath = [
     "#phonelibs/opencl/include",
+    "#phonelibs/snpe/include",
   ]
   libpath = [
-    "#phonelibs/snpe/aarch64-android-clang3.8",
     "/usr/lib",
     "/data/data/com.termux/files/usr/lib",
     "/system/vendor/lib64",
     "/system/comma/usr/lib",
     "#phonelibs/nanovg",
+    "#phonelibs/snpe/aarch64",
     "#phonelibs/libyuv/lib",
   ]
-
-  cflags = ["-DQCOM", "-mcpu=cortex-a57"]
-  cxxflags = ["-DQCOM", "-mcpu=cortex-a57"]
-
-  rpath = ["/system/vendor/lib64"]
+  
+  if is_tbp:
+    cflags = []
+    cxxflags = []
+    cpppath = [
+      "/usr/local/include",
+      "/usr/local/include/opencv4",
+      "/usr/include/khronos-api",
+      "/usr/include",
+      "#phonelibs/snpe/include",
+      "/usr/include/aarch64-linux-gnu",
+    ]
+    libpath = [
+      "/usr/local/lib",
+      "/usr/lib/aarch64-linux-gnu",
+      "/usr/lib",
+      "/data/op_rk3399_setup/external/snpe/lib/lib",
+      "/data/data/com.termux/files/usr/lib",
+      "#phonelibs/nanovg",
+      "/data/op_rk3399_setup/support_files/lib",
+    ]
+    rpath = ["/system/vendor/lib64",
+      "/usr/local/lib",
+      "/usr/lib/aarch64-linux-gnu",
+      "/usr/lib",
+      "/data/op_rk3399_setup/external/snpe/lib/lib",
+      "/data/op_rk3399_setup/support_files/lib",
+      "cereal",
+      "selfdrive/common",
+    ] 
+  else:
+    cflags = ["-DQCOM", "-mcpu=cortex-a57"]
+    cxxflags = ["-DQCOM", "-mcpu=cortex-a57"]
+    rpath = ["/system/vendor/lib64"]
 else:
   lenv = {
     "PATH": "#external/bin:" + os.environ['PATH'],
@@ -117,13 +159,12 @@ env = Environment(
     "#phonelibs/json11",
     "#phonelibs/eigen",
     "#phonelibs/curl/include",
-    "#phonelibs/opencv/include",
+    #"#phonelibs/opencv/include",
     "#phonelibs/libgralloc/include",
     "#phonelibs/android_frameworks_native/include",
     "#phonelibs/android_hardware_libhardware/include",
     "#phonelibs/android_system_core/include",
     "#phonelibs/linux/include",
-    "#phonelibs/snpe/include",
     "#phonelibs/nanovg",
     "#selfdrive/common",
     "#selfdrive/camerad",
@@ -178,7 +219,9 @@ def abspath(x):
 #zmq = 'zmq'
 # still needed for apks
 zmq = FindFile("libzmq.a", libpath)
-Export('env', 'arch', 'zmq', 'SHARED')
+if is_tbp:
+  zmq = FindFile("libzmq.so", libpath)
+Export('env', 'arch', 'zmq', 'SHARED', 'webcam', 'is_tbp')
 
 # cereal and messaging are shared with the system
 SConscript(['cereal/SConscript'])
@@ -222,7 +265,7 @@ SConscript(['selfdrive/proclogd/SConscript'])
 SConscript(['selfdrive/ui/SConscript'])
 SConscript(['selfdrive/loggerd/SConscript'])
 
-if arch == "aarch64":
+if arch == "aarch64" and not is_tbp:
   SConscript(['selfdrive/logcatd/SConscript'])
   SConscript(['selfdrive/sensord/SConscript'])
   SConscript(['selfdrive/clocksd/SConscript'])

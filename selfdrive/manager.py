@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python3
 import os
 import time
 import sys
@@ -14,6 +14,7 @@ from selfdrive.car.tesla.readconfig import CarSettings
 import datetime
 
 from common.basedir import BASEDIR, PARAMS
+WEBCAM = os.getenv("WEBCAM") is not None
 from common.android import ANDROID
 sys.path.append(os.path.join(BASEDIR, "pyextra"))
 os.environ['BASEDIR'] = BASEDIR
@@ -104,7 +105,6 @@ if not prebuilt:
           i = int(line[len(prefix):])
           if spinner is not None:
             spinText = carSettings.spinnerText
-            #spinner.update(spinText % (100.0 * (i + 1) / len(managed_processes),))
             spinner.update(spinText % (50.0 * (i / TOTAL_SCONS_NODES)))
         elif len(line):
           print(line.decode('utf8'))
@@ -117,7 +117,7 @@ if not prebuilt:
         for i in range(3,-1,-1):
           print("....%d" % i)
           time.sleep(1)
-        subprocess.check_call(["scons", "-c"], cwd=BASEDIR, env=env)
+        #subprocess.check_call(["scons", "-c"], cwd=BASEDIR, env=env)
         shutil.rmtree("/tmp/scons_cache")
       else:
         raise RuntimeError("scons build failed")
@@ -194,10 +194,14 @@ green_temp_processes = ['uploader']
 persistent_processes = [
   'tinklad',
   'thermald',
-  'logmessaged',
   'ui',
-  'uploader',
 ]
+if not WEBCAM:
+    persistent_processes += [
+      'logmessaged',
+      'uploader',
+    ]
+
 if ANDROID:
   persistent_processes += [
     'logcatd',
@@ -219,6 +223,11 @@ car_started_processes = [
   'ubloxd',
   'locationd',
 ]
+
+if not WEBCAM:
+    car_started_processes += [
+    ]
+
 if ANDROID:
   car_started_processes += [
     'sensord',
@@ -227,6 +236,11 @@ if ANDROID:
     'dmonitoringmodeld',
     'deleter',
   ]
+
+if WEBCAM:
+    car_started_processes += [
+    'dmonitoringmodeld',
+]
 
 def register_managed_process(name, desc, car_started=False):
   global managed_processes, car_started_processes, persistent_processes
@@ -366,7 +380,9 @@ def manager_init(should_register=True):
       raise Exception("server registration failed")
   else:
     dongle_id = "c"*16
-
+  #BB
+  if not dongle_id:
+      dongle_id = "nada"
   # set dongle id
   cloudlog.info("dongle id is " + dongle_id)
   os.environ['DONGLE_ID'] = dongle_id
@@ -497,7 +513,7 @@ def manager_thread():
 
     # check the status of all processes, did any of them die?
     running_list = ["%s%s\u001b[0m" % ("\u001b[32m" if running[p].is_alive() else "\u001b[31m", p) for p in running]
-    #cloudlog.debug(' '.join(running_list))
+    cloudlog.debug(' '.join(running_list))
 
     # Exit main loop when uninstall is needed
     if params.get("DoUninstall", encoding='utf8') == "1":
@@ -544,7 +560,8 @@ def main():
   os.environ['PARAMS_PATH'] = PARAMS
 
   # the flippening!
-  os.system('LD_LIBRARY_PATH="" content insert --uri content://settings/system --bind name:s:user_rotation --bind value:i:1')
+  if not WEBCAM:
+    os.system('LD_LIBRARY_PATH="" content insert --uri content://settings/system --bind name:s:user_rotation --bind value:i:1')
 
   # disable bluetooth
   os.system('service call bluetooth_manager 8')
@@ -566,7 +583,7 @@ def main():
     ("LongitudinalControl", "0"),
     ("LimitSetSpeed", "0"),
     ("LimitSetSpeedNeural", "0"),
-    ("LastUpdateTime", datetime.datetime.now().isoformat().encode('utf8')),
+    ("LastUpdateTime", datetime.datetime.utcnow().isoformat().encode('utf8')),
     ("OpenpilotEnabledToggle", "1"),
     ("LaneChangeEnabled", "1"),
   ]

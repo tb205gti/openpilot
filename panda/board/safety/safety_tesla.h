@@ -23,7 +23,7 @@ const struct lookup_t TESLA_LOOKUP_MAX_ANGLE = {
     {500., 500., 500.}};
 
 const AddrBus TESLA_TX_MSGS[] = {//chassis CAN
-{0x045,0}, {0x209,0}, {0x219,0}, {0x214,0}, {0x229,0}, {0x239,0}, {0x249,0}, 
+{0x045,0}, {0x209,0}, {0x219,0}, {0x229,0}, {0x239,0}, {0x249,0}, 
   {0x2B9,0}, {0x309,0}, {0x329,0}, {0x349,0}, {0x369,0}, {0x379,0}, {0x389,0}, 
   {0x399,0}, {0x3A9,0}, {0x3B1,0}, {0x3D9,0}, {0x3E9,0}, {0x400,0}, {0x488,0}, 
   {0x409,0}, {0x551,0}, {0x539,0}, {0x554,0}, {0x556,0}, {0x557,0}, {0x559,0}, 
@@ -34,7 +34,7 @@ const AddrBus TESLA_TX_MSGS[] = {//chassis CAN
   {0x199,1}, {0x1A9,1}, {0x209,1}, {0x219,1}, {0x2A9,1}, {0x2B9,1}, {0x2D9,1}, 
   {0x641,1}, 
 //epas CAN
-{0x214,2}, {0x488,2}, {0x551,2},};  
+{0x488,2}, {0x551,2},};  
 
 // TODO: do checksum and counter checks. Add correct timestep, 0.1s for now.
 AddrCheckStruct tesla_rx_checks[] = {
@@ -983,8 +983,9 @@ static void do_EPB_epasControl(uint32_t RIR, uint32_t RDTR) {
   MLB = MLB + (cksm << 16);
   if (DAS_noEpasHarness == 0) {
     send_fake_message(RIR,RDTR,3,0x214,2,MLB,MHB);
-  } // send also on 0 for monitoring
-  send_fake_message(RIR,RDTR,3,0x214,0,MLB,MHB);
+  } else {
+    send_fake_message(RIR,RDTR,3,0x214,0,MLB,MHB);
+  }
   EPB_epasControl_idx++;
   EPB_epasControl_idx = EPB_epasControl_idx % 16;
 }
@@ -2005,6 +2006,11 @@ static int tesla_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd)
       to_fwd->RDLR = GET_BYTES_04(to_fwd) & 0xFFFF;
       to_fwd->RDLR = GET_BYTES_04(to_fwd) + (checksum << 16);
       return ret_val;
+    }
+
+    if (addr == 0x214) {
+      //inhibit ibooster epas kill signal
+      return -1;
     }
 
     //forward everything else to CAN 2 unless claiming no harness
