@@ -233,6 +233,13 @@ class CarState(CarStateBase):
     self.ldwNumbPeriod = 1.5
     self.tapBlinkerExtension = 2
     self.ahbOffDuration = 5
+    self.roadCameraID = ""
+    self.driverCameraID = ""
+    self.roadCameraFx = 0.73
+    self.driverCameraFx = 0.75
+    self.roadCameraFlip = 0
+    self.driverCameraFlip = 0
+    self.monitorForcedRes = ""
     #read config file
     read_config_file(self)
     ### END OF MAIN CONFIG OPTIONS ###
@@ -553,7 +560,7 @@ class CarState(CarStateBase):
       self.apFollowTimeInS =  1 + cp.vl["MCU_chassisControl"]["MCU_fcwSensitivity"] * 0.5
       self.keepEonOff = cp.vl["MCU_chassisControl"]["MCU_ldwEnable"] == 1
       self.alcaEnabled = cp.vl["MCU_chassisControl"]["MCU_pedalSafetyEnable"] == 1
-      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] == 1 and self.useTeslaMapData
+      self.mapAwareSpeed = cp.vl["MCU_chassisControl"]["MCU_aebEnable"] != 1 and self.useTeslaMapData
       #AHB info
       self.ahbHighBeamStalkPosition = cp.vl["STW_ACTN_RQ"]["HiBmLvr_Stat"]
       self.ahbEnabled = cp.vl["MCU_chassisControl"]["MCU_ahlbEnable"]

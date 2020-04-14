@@ -808,8 +808,20 @@ static void ui_draw_vision(UIState *s) {
 
   // Draw video frames
   glEnable(GL_SCISSOR_TEST);
-  glViewport(ui_viz_rx+ui_viz_ro, s->fb_h-(box_y+box_h), viz_w, box_h);
+#if defined(QCOM) || defined(QCOM2)
+  glViewport(ui_viz_rx+ui_viz_ro, s->fb_h-(box_y+box_h), viz_w , box_h);
   glScissor(ui_viz_rx, s->fb_h-(box_y+box_h), ui_viz_rw, box_h);
+#else
+  int b0 = int(bdr_s * s->b.scr_w / 1920);
+  int w0 = s->b.scr_w -2 * b0;
+  int h0 = s->b.scr_h -2*b0;
+  int x0 = b0;
+  int y0 = s->fb_h-(b0+h0);
+  int x1 = (w0-ui_viz_rw)/2 -  b0;
+  int y1 = box_h -h0 - 2 * bdr_s;
+  glViewport(x0,y0,w0,h0);
+  glScissor(x1,y1,ui_viz_rw,box_h);
+#endif
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   draw_frame(s);
@@ -819,6 +831,7 @@ static void ui_draw_vision(UIState *s) {
   glClear(GL_STENCIL_BUFFER_BIT);
 
   nvgBeginFrame(s->vg, s->fb_w, s->fb_h, 1.0f);
+  nvgScale(s->vg,s->b.scr_scale_x,s->b.scr_scale_y);
   nvgSave(s->vg);
 
   // Draw augmented elements
@@ -858,6 +871,8 @@ void ui_draw(UIState *s) {
     ui_draw_sidebar(s);
     ui_draw_vision(s);
   } else {
+    nvgScale(s->vg,s->b.scr_scale_x,s->b.scr_scale_y);
+    
     ui_draw_blank(s);
     if (!s->scene.uilayout_sidebarcollapsed) {
       ui_draw_sidebar(s);
@@ -918,8 +933,8 @@ static const char frame_fragment_shader[] =
 #endif
 
 static const mat4 device_transform = {{
-  1.0,  0.0, 0.0, 0.0,
-  0.0,  1.0, 0.0, 0.0,
+  0.68,  0.0, 0.0, 0.0,
+  0.0,  0.68, 0.0, 0.0,
   0.0,  0.0, 1.0, 0.0,
   0.0,  0.0, 0.0, 1.0,
 }};
@@ -1040,9 +1055,8 @@ void ui_nvg_init(UIState *s) {
     glBindBuffer(GL_ARRAY_BUFFER,0);
     glBindVertexArray(0);
   }
-
-  s->front_frame_mat = matmul(device_transform, full_to_wide_frame_transform);
-  s->rear_frame_mat = matmul(device_transform, frame_transform);
+    s->rear_frame_mat = matmul(device_transform, frame_transform);
+    s->front_frame_mat = matmul(device_transform, full_to_wide_frame_transform);
 
   for(int i = 0;i < UI_BUF_COUNT; i++) {
     s->khr[i] = NULL;
