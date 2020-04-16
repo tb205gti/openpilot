@@ -1478,8 +1478,19 @@ void  bb_ui_poll_update( UIState *s) {
           s->b.gyroPitch = datad.gyroPitch;
           s->b.gyroRoll = datad.gyroRoll;
           s->b.gyroYaw = datad.gyroYaw;
- 	  s->b.pedalPos = datad.pedalpos;
           
+          capn_free(&ctx);
+        }
+	if (sock == s->b.uiPedalInfo_sock){
+          //pedalinfo sock
+          struct capn ctx;
+          capn_init_mem(&ctx, (uint8_t*)msg->getData(), msg->getSize(), 0);
+          cereal_UIPedalInfo_ptr stp;
+          stp.p = capn_getp(capn_root(&ctx), 0, 1);
+          struct cereal_UIPedalInfo datad;
+          cereal_read_UIPedalInfo(&datad, stp);
+          s->b.pedalPos = datad.pedalpos;
+
           capn_free(&ctx);
         }
         delete msg; 
