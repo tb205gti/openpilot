@@ -29,8 +29,8 @@ class PIController():
     self.d_rate = 7.0 / rate
     self.sat_limit = sat_limit
     self.convert = convert
-    self.past_5_errors_avg = 0
-    self.past_5_errors = MovingAverage(3)
+    self.past_errors_avg = 0
+    self.past_errors = MovingAverage(3)
 
     self.reset()
 
