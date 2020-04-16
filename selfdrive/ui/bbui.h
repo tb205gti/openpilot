@@ -1478,6 +1478,7 @@ void  bb_ui_poll_update( UIState *s) {
           s->b.gyroPitch = datad.gyroPitch;
           s->b.gyroRoll = datad.gyroRoll;
           s->b.gyroYaw = datad.gyroYaw;
+ 	  s->b.pedalPos = datad.pedalpos;
           
           capn_free(&ctx);
         }
