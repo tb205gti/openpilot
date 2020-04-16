@@ -68,4 +68,5 @@ typedef struct BBUIState {
     uint16_t fanSpeed;
     bool keepEonOff;
     bool recording;
+    float pedalPos;
 } BBUIState;
