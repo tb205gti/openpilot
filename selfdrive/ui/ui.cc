@@ -31,7 +31,7 @@ static void set_brightness(UIState *s, int brightness) {
   if (last_brightness != brightness && (s->awake || brightness == 0)) {
     FILE *f = fopen("/sys/class/leds/lcd-backlight/brightness", "wb");
     if (f != NULL) {
-      fprintf(f, "%d", brightness);
+      fprintf(f, "%d", 50);//brightness);
       fclose(f);
       last_brightness = brightness;
     }
@@ -39,12 +39,14 @@ static void set_brightness(UIState *s, int brightness) {
 }
 
 static void set_awake(UIState *s, bool awake) {
-#ifdef QCOM
+  //LOGW("awake called");
   if (awake) {
     // 30 second timeout at 30 fps
     if (((s->b.tri_state_switch == 3) || (s->b.keepEonOff)) && !s->b.recording) {
+     //LOGW("SHORT awake called");
       s->awake_timeout = 3*30;
     } else {
+      //LOGW("LONG awake called");
       s->awake_timeout = 30*30;
     }
   }
@@ -63,10 +65,6 @@ static void set_awake(UIState *s, bool awake) {
       framebuffer_set_power(s->fb, HWC_POWER_MODE_OFF);
     }
   }
-#else
-  // computer UI doesn't sleep
-  s->awake = true;
-#endif
 }
 
 #include "dashcam.h"
@@ -355,8 +353,9 @@ void handle_message(UIState *s, Message * msg) {
   struct cereal_Event eventd;
   cereal_read_Event(&eventd, eventp);
 
-  int bts = bb_get_button_status(s,(char *)"sound");
-  if (eventd.which == cereal_Event_controlsState) {
+  //int bts = bb_get_button_status(s,(char *)"sound");
+int bts = 0;  
+if (eventd.which == cereal_Event_controlsState) {
     struct cereal_ControlsState datad;
     cereal_read_ControlsState(&datad, eventd.controlsState);
 
@@ -1054,7 +1053,7 @@ int main(int argc, char* argv[]) {
       }
       check_messages(s);
     } else {
-      set_awake(s, true);
+//      set_awake(s, true);
       if (s->status == STATUS_STOPPED) {
         update_status(s, STATUS_DISENGAGED);
       }
