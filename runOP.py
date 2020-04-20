@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
-import os
-import time, termios, tty, sys
-import math
-import atexit
 import numpy as np
-import threading
-import random
+import time
+import atexit
 import cereal.messaging as messaging
 import argparse
-import queue
+import threading
 from common.params import Params
 from common.realtime import Ratekeeper
-from selfdrive.car.honda.values import CruiseButtons
 
 parser = argparse.ArgumentParser(description='Bridge between CARLA and openpilot.')
 parser.add_argument('--autopilot', action='store_true')
@@ -45,10 +40,9 @@ def fake_driver_monitoring():
     pm.send('driverState', dat)
     time.sleep(0.1)
 
-def go(q):
+def go():
   threading.Thread(target=health_function).start()
   threading.Thread(target=fake_driver_monitoring).start()
-
 
   def destroy():
     print("clean exit")
@@ -82,5 +76,6 @@ if __name__ == "__main__":
   params.put("CompletedTrainingVersion", training_version)
   params.put("CommunityFeaturesToggle", "1")
 
-
   health_function()
+#  go()
+
