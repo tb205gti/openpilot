@@ -31,7 +31,7 @@ static void set_brightness(UIState *s, int brightness) {
   if (last_brightness != brightness && (s->awake || brightness == 0)) {
     FILE *f = fopen("/sys/class/leds/lcd-backlight/brightness", "wb");
     if (f != NULL) {
-      fprintf(f, "%d", 50);//brightness);
+      fprintf(f, "%d", brightness);
       fclose(f);
       last_brightness = brightness;
     }
@@ -39,14 +39,12 @@ static void set_brightness(UIState *s, int brightness) {
 }
 
 static void set_awake(UIState *s, bool awake) {
-  //LOGW("awake called");
+#ifdef QCOM
   if (awake) {
     // 30 second timeout at 30 fps
     if (((s->b.tri_state_switch == 3) || (s->b.keepEonOff)) && !s->b.recording) {
-     //LOGW("SHORT awake called");
       s->awake_timeout = 3*30;
     } else {
-      //LOGW("LONG awake called");
       s->awake_timeout = 30*30;
     }
   }
@@ -55,16 +53,18 @@ static void set_awake(UIState *s, bool awake) {
 
     // TODO: replace command_awake and command_sleep with direct calls to android
     if (awake) {
-      LOGW("awake normal");
       system("service call window 18 i32 1");  // enable event processing
       framebuffer_set_power(s->fb, HWC_POWER_MODE_NORMAL);
     } else {
-      LOGW("awake off");
       set_brightness(s, 0);
       system("service call window 18 i32 0");  // disable event processing
       framebuffer_set_power(s->fb, HWC_POWER_MODE_OFF);
     }
   }
+#else
+ // computer UI doesn't sleep	
+ s->awake = true;
+#endif
 }
 
 #include "dashcam.h"
