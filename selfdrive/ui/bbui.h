@@ -403,6 +403,10 @@ void bb_draw_button( UIState *s, int btn_id) {
     return;
   }
   
+  //hackish..
+  if (btn_disabled[btn_id] == 1 && s->b.btns_status[btn_id] != 2){
+    return;
+  }
   nvgBeginPath(s->vg);
   nvgRoundedRect(s->vg, viz_button_x, viz_button_y, viz_button_w, viz_button_h, 80);
   nvgStrokeWidth(s->vg, 12);
