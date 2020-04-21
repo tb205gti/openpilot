@@ -1064,6 +1064,7 @@ int main(int argc, char* argv[]) {
         // Visiond process is just stopped, force a redraw to make screen blank again.
         s->scene.satelliteCount = -1;
         s->scene.uilayout_sidebarcollapsed = false;
+	dashcam(s, dc_touch_x, dc_touch_y);
         ui_draw(s);
         glFinish();
         should_swap = true;
