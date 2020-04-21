@@ -1064,7 +1064,6 @@ int main(int argc, char* argv[]) {
         // Visiond process is just stopped, force a redraw to make screen blank again.
         s->scene.satelliteCount = -1;
         s->scene.uilayout_sidebarcollapsed = false;
-	dashcam(s, dc_touch_x, dc_touch_y);
         ui_draw(s);
         glFinish();
         should_swap = true;
@@ -1090,6 +1089,7 @@ int main(int argc, char* argv[]) {
       ui_draw(s);
       if (s->vision_connected) {
 	nvgScale(s->vg,s->b.scr_scale_x,s->b.scr_scale_y);
+	dashcam(s, dc_touch_x, dc_touch_y);
         bb_ui_draw_UI(s) ;
         ui_draw_infobar(s);
       }
