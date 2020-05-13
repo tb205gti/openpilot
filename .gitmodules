@@ -1,3 +1,12 @@
+[submodule "panda"]
+	path = panda
+	url = https://github.com/boggyver/panda.git
+[submodule "opendbc"]
+	path = opendbc
+	url = https://github.com/boggyver/opendbc.git
+[submodule "cereal"]
+	path = cereal
+	url = https://github.com/boggyver/cereal.git
 [submodule "apks"]
 	path = apks
 	url = https://github.com/commaai/openpilot-apks.git
