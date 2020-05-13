@@ -316,6 +316,15 @@ class CarController():
     #upodate custom UI buttons and alerts
     CS.UE.update_custom_ui()
       
+
+    #PKA Send pedal info to be used in the UI
+    if (frame % 50 == 0):
+      if (CS.pedal_interceptor_value < 3.):
+        CS.UE.uiPedalInfoEvent(0)
+      else:
+        CS.UE.uiPedalInfoEvent(int(CS.pedal_interceptor_value))
+
+
     if (frame % 100 == 0):
       CS.cstm_btns.send_button_info()
       #read speed limit params
@@ -798,7 +807,8 @@ class CarController():
     return messages
 
   def _should_ldw(self, CS, frame):
-    if not CS.enableLdw:
+    is_ldw_enabled = self.params.get("IsLdwEnabled", encoding='utf8') == "1"
+    if not is_ldw_enabled: #CS.enableLdw:
       return False
     if CS.prev_turn_signal_blinking and not CS.turn_signal_blinking:
       self.ldw_numb_frame_end = frame + int(100 * CS.ldwNumbPeriod)

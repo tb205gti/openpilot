@@ -336,6 +336,24 @@ int bb_get_button_status( UIState *s, char *btn_name) {
 }
 
 void bb_draw_button( UIState *s, int btn_id) {
+/*
+0 = ALCA
+1 = ACCMode/PCCMode
+2 = Display
+3 = empty
+4 = MSG
+5 = Sound
+*/
+
+  int btn_removed [6] = {0,0,1,0,1,1};
+  int btn_disabled [6] = {1,1,1,1,1,1};
+//  int btn_removed [6] = {0,0,0,0,0,0};
+//  int btn_disabled [6] = {0,0,0,0,0,0};
+
+  if (btn_removed[btn_id] == 1){
+    return;
+  }
+
   const UIScene *scene = &s->scene;
 
   int viz_button_x = 0;
@@ -384,9 +402,14 @@ void bb_draw_button( UIState *s, int btn_id) {
   if (s->b.btns_r[btn_id] == 0) {
     return;
   }
+
+//hackish..
+  if (btn_disabled[btn_id] == 1 && s->b.btns_status[btn_id] != 2){
+    return;
+  }
   
   nvgBeginPath(s->vg);
-  nvgRoundedRect(s->vg, viz_button_x, viz_button_y, viz_button_w, viz_button_h, 80);
+  nvgRoundedRect(s->vg, viz_button_x, viz_button_y, viz_button_w, viz_button_h, 60);
   nvgStrokeWidth(s->vg, 12);
 
   
@@ -1011,6 +1034,7 @@ void ui_draw_vision_grid( UIState *s) {
 }
 
 void bb_ui_draw_logo( UIState *s) {
+  return;
   if ((s->status != STATUS_DISENGAGED) && (s->status != STATUS_STOPPED)) { //(s->status != STATUS_DISENGAGED) {//
     return;
   }
@@ -1194,11 +1218,11 @@ void bb_ui_draw_UI( UIState *s) {
 	  const int bb_dmr_w = 180;
 	  const int bb_dmr_x = scene->ui_viz_rx + scene->ui_viz_rw - bb_dmr_w - (bdr_s*2) ; 
 	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
-    bb_ui_draw_measures_left(s,bb_dml_x, bb_dml_y, bb_dml_w );
-    bb_ui_draw_measures_right(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
+    //bb_ui_draw_measures_left(s,bb_dml_x, bb_dml_y, bb_dml_w );
+    //bb_ui_draw_measures_right(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
-    bb_ui_draw_logo(s);
+    //bb_ui_draw_logo(s);
 	 }
    if (s->b.tri_state_switch ==2) {
 	 	const UIScene *scene = &s->scene;
@@ -1211,7 +1235,7 @@ void bb_ui_draw_UI( UIState *s) {
 	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
-    bb_ui_draw_logo(s);
+    //bb_ui_draw_logo(s);
 	 }
 	 if (s->b.tri_state_switch ==3) {
     //we now use the state 3 for minimalistic data alerts
@@ -1223,8 +1247,8 @@ void bb_ui_draw_UI( UIState *s) {
 	  const int bb_dmr_w = 180;
 	  const int bb_dmr_x = scene->ui_viz_rx + scene->ui_viz_rw - bb_dmr_w - (bdr_s*2) ; 
 	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
-    bb_ui_draw_measures_left2(s,bb_dml_x, bb_dml_y, bb_dml_w );
-    bb_ui_draw_measures_right2(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
+    //bb_ui_draw_measures_left2(s,bb_dml_x, bb_dml_y, bb_dml_w );
+    //bb_ui_draw_measures_right2(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
 	 }
@@ -1270,13 +1294,15 @@ void bb_ui_init(UIState *s) {
     s->b.uiButtonStatus_sock = PubSocket::create(s->b.ctx, "uiButtonStatus"); //zsock_new_pub("@tcp://127.0.0.1:8204");
     s->b.gps_sock = SubSocket::create(s->b.ctx, "gpsLocationExternal"); //zsock_new_sub(">tcp://127.0.0.1:8032","");
     s->b.uiGyroInfo_sock = SubSocket::create(s->b.ctx, "uiGyroInfo"); //zsock_new_sub(">tcp://127.0.0.1:8207", "");
+    s->b.uiPedalInfo_sock = SubSocket::create(s->b.ctx, "uiPedalInfo");
     s->b.poller = Poller::create({
                               s->b.uiButtonInfo_sock,
                               s->b.uiCustomAlert_sock,
                               s->b.uiSetCar_sock,
                               s->b.uiPlaySound_sock,
                               s->b.gps_sock,
-                              s->b.uiGyroInfo_sock
+                              s->b.uiGyroInfo_sock,
+                              s->b.uiPedalInfo_sock
                              });
 
     //BB Load Images
@@ -1459,6 +1485,19 @@ void  bb_ui_poll_update( UIState *s) {
           s->b.gyroRoll = datad.gyroRoll;
           s->b.gyroYaw = datad.gyroYaw;
           
+          capn_free(&ctx);
+        }
+
+        if (sock == s->b.uiPedalInfo_sock){
+          //pedalinfo sock
+          struct capn ctx;
+          capn_init_mem(&ctx, (uint8_t*)msg->getData(), msg->getSize(), 0);
+          cereal_UIPedalInfo_ptr stp;
+          stp.p = capn_getp(capn_root(&ctx), 0, 1);
+          struct cereal_UIPedalInfo datad;
+          cereal_read_UIPedalInfo(&datad, stp);
+          s->b.pedalPos = datad.pedalpos;
+
           capn_free(&ctx);
         }
         delete msg; 

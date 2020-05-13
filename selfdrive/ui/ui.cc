@@ -443,7 +443,7 @@ void handle_message(UIState *s, Message * msg) {
   struct cereal_Event eventd;
   cereal_read_Event(&eventd, eventp);
 
-  int bts = bb_get_button_status(s,(char *)"sound");
+  int bts = 0; // bb_get_button_status(s,(char *)"sound");
   if (eventd.which == cereal_Event_controlsState) {
     struct cereal_ControlsState datad;
     cereal_read_ControlsState(&datad, eventd.controlsState);
@@ -787,6 +787,7 @@ static void ui_update(UIState *s) {
   zmq_pollitem_t polls[1] = {{0}};
   // Take an rgb image from visiond if there is one
   while(true) {
+
     assert(s->ipc_fd >= 0);
     polls[0].fd = s->ipc_fd;
     polls[0].events = ZMQ_POLLIN;
@@ -849,9 +850,9 @@ static void ui_update(UIState *s) {
         // printf("v %d\n", ((uint8_t*)s->bufs[idx].addr)[0]);
       }
       //BB merge: not sure where this will go for now
-      //if (((awake) && (s->b.tri_state_switch != 3) && (!s->b.keepEonOff)) || (s->b.recording)){
-      //  set_awake(s, true);
-      //}
+      if (((s->b.tri_state_switch != 3) && (!s->b.keepEonOff)) || (s->b.recording)){
+        set_awake(s, true);
+      }
     } else {
       assert(false);
     }

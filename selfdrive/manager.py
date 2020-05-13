@@ -84,7 +84,7 @@ from multiprocessing import Process
 
 # Run scons
 spinner = Spinner()
-spinner.update("0")
+spinner.update(" ")
 
 if not prebuilt:
   for retry in [True, False]:
@@ -165,6 +165,7 @@ ThermalStatus = cereal.log.ThermalData.ThermalStatus
 # comment out anything you don't want to run
 managed_processes = {
   "tinklad":  "selfdrive.tinklad.tinklad",
+  "webserved":  "selfdrive.webserved.webserved",
   "thermald": "selfdrive.thermald.thermald",
   "uploader": "selfdrive.loggerd.uploader",
   "deleter": "selfdrive.loggerd.deleter",
@@ -215,6 +216,7 @@ kill_processes = ['sensord', 'paramsd']
 green_temp_processes = ['uploader']
 
 persistent_processes = [
+  'webserved',
   'tinklad',
   'thermald',
   'ui',

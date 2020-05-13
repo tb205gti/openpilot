@@ -458,6 +458,9 @@ def thermald_thread():
     fw_version_match_prev = fw_version_match
     should_start_prev = should_start
 
+    if (count % int(10) == 0):
+      print('BatteryLevel {} - BatteryCurrent: {} A'.format(msg.thermal.batteryPercent, (msg.thermal.batteryCurrent/1000000)*-1 ))
+
     # report to server once per minute
     if (count % int(60. / DT_TRML)) == 0:
       cloudlog.event("STATUS_PACKET",

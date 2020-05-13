@@ -30,11 +30,11 @@ _A_CRUISE_MIN_BP = [   0., 5.,  10., 20.,  40.]
 # need fast accel at very low speed for stop and go
 # make sure these accelerations are smaller than mpc limits
 
-_A_CRUISE_MAX_V_TESLA = [1.775, 1.85, 1.325, 1.25]
+_A_CRUISE_MAX_V_TESLA = [1.875, 1.95, 1.625, 1.55]
 _A_CRUISE_MAX_V = [1.2, 1.2, 0.65, .4]
-_A_CRUISE_MAX_V_FOLLOWING_TESLA = [1.6, 1.6, 0.65, .4]
+_A_CRUISE_MAX_V_FOLLOWING_TESLA = [1.6, 1.6, 0.95, .75]
 _A_CRUISE_MAX_V_FOLLOWING = [1.6, 1.6, 0.65, .4]
-_A_CRUISE_MAX_BP = [0.,  6.4, 22.5, 40.]
+_A_CRUISE_MAX_BP = [0.,  6.4, 22.5, 40.] #0, 23, 81, 144
 
 # Lookup table for turns
 _A_TOTAL_MAX_V_TESLA = [1.7, 3.2]

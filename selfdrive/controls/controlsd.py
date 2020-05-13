@@ -457,7 +457,7 @@ def controlsd_thread(sm=None, pm=None, can_sock=None):
 
   tinklaClient = TinklaClient()
   is_metric = params.get("IsMetric", encoding='utf8') == "1"
-  is_ldw_enabled = params.get("IsLdwEnabled", encoding='utf8') == "1"
+  is_ldw_enabled = 0 # params.get("IsLdwEnabled", encoding='utf8') == "1"
   passive = params.get("Passive", encoding='utf8') == "1"
   openpilot_enabled_toggle = params.get("OpenpilotEnabledToggle", encoding='utf8') == "1"
   community_feature_toggle = params.get("CommunityFeaturesToggle", encoding='utf8') == "1"
