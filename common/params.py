@@ -53,7 +53,7 @@ class UnknownKeyName(Exception):
 
 
 keys = {
-  "AccessToken": [TxType.PERSISTENT],
+  "AccessToken": [TxType.CLEAR_ON_MANAGER_START], #BB what happends if no int connection?
   "AthenadPid": [TxType.PERSISTENT],
   "CalibrationParams": [TxType.PERSISTENT],
   "CarParams": [TxType.CLEAR_ON_MANAGER_START, TxType.CLEAR_ON_PANDA_DISCONNECT], #BB we had [TxType.CLEAR_ON_CAR_START],
@@ -71,6 +71,7 @@ keys = {
   "GithubSshKeys": [TxType.PERSISTENT],
   "HasAcceptedTerms": [TxType.PERSISTENT],
   "HasCompletedSetup": [TxType.PERSISTENT],
+  "IsDriverViewEnabled": [TxType.CLEAR_ON_MANAGER_START],
   "IsLdwEnabled": [TxType.PERSISTENT],
   "IsGeofenceEnabled": [TxType.PERSISTENT],
   "IsMetric": [TxType.PERSISTENT],
@@ -79,6 +80,7 @@ keys = {
   "IsTakingSnapshot": [TxType.CLEAR_ON_MANAGER_START],
   "IsUpdateAvailable": [TxType.CLEAR_ON_MANAGER_START],
   "IsUploadRawEnabled": [TxType.PERSISTENT],
+  "LastAthenaPingTime": [TxType.PERSISTENT],
   "LastUpdateTime": [TxType.PERSISTENT],
   "LimitSetSpeed": [TxType.PERSISTENT],
   "LimitSetSpeedNeural": [TxType.PERSISTENT],
@@ -108,11 +110,12 @@ keys = {
   "Offroad_InvalidTime": [TxType.CLEAR_ON_MANAGER_START],
   "Offroad_IsTakingSnapshot": [TxType.CLEAR_ON_MANAGER_START],
   "DriverUsbCameraID": [TxType.PERSISTENT],
+  "RoadUsbCameraID": [TxType.PERSISTENT],
   "DriverUsbCameraFx": [TxType.PERSISTENT],
   "DriverUsbCameraFlip": [TxType.PERSISTENT],
-  "RoadUsbCameraID": [TxType.PERSISTENT],
   "RoadUsbCameraFx": [TxType.PERSISTENT],
   "RoadUsbCameraFlip": [TxType.PERSISTENT],
+  "TeslaModel": [TxType.PERSISTENT],
 }
 
 

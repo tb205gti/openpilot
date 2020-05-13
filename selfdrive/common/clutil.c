@@ -85,7 +85,7 @@ void cl_print_info(cl_platform_id platform, cl_device_id device) {
 
   size_t sz;
   clGetDeviceInfo(device, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(sz), &sz, NULL);
-  printf("max work group size: %u\n", sz);
+  printf("max work group size: %zu\n", sz);
 
   cl_device_type type;
   clGetDeviceInfo(device, CL_DEVICE_TYPE, sizeof(type), &type, NULL);
@@ -226,9 +226,9 @@ cl_program cl_cached_program_from_string(cl_context ctx, cl_device_id device_id,
   prg = cl_cached_program_from_hash(ctx, device_id, hash);
 #endif
   if (prg == NULL) {
+    //printf("Processing CL [%s]\n",src);
     prg = clCreateProgramWithSource(ctx, 1, (const char**)&src, NULL, &err);
     assert(err == 0);
-
     err = clBuildProgram(prg, 1, &device_id, args, NULL, NULL);
     if (err != 0) {
       cl_print_build_errors(prg, device_id);

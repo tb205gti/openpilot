@@ -28,12 +28,17 @@ def load_interfaces(brand_names):
   for brand_name in brand_names:
     path = ('selfdrive.car.%s' % brand_name)
     CarInterface = __import__(path + '.interface', fromlist=['CarInterface']).CarInterface
-    if os.path.exists(BASEDIR + '/' + path.replace('.', '/') + '/carcontroller.py'):
-      CarController = __import__(path + '.carcontroller', fromlist=['CarController']).CarController
+
+    if os.path.exists(BASEDIR + '/' + path.replace('.', '/') + '/carstate.py'):
       CarState = __import__(path + '.carstate', fromlist=['CarState']).CarState
     else:
-      CarController = None
       CarState = None
+
+    if os.path.exists(BASEDIR + '/' + path.replace('.', '/') + '/carcontroller.py'):
+      CarController = __import__(path + '.carcontroller', fromlist=['CarController']).CarController
+    else:
+      CarController = None
+
     for model_name in brand_names[brand_name]:
       ret[model_name] = (CarInterface, CarController, CarState)
   return ret
@@ -164,7 +169,7 @@ def get_car(logcan, sendcan, has_relay = False):
     fingerprints=["","",""]
     vin="TESLAFORCED123456"
     #BB
-    fw_candidates, car_fw = set(), []
+    car_fw = []
     source=car.CarParams.FingerprintSource.fixed
     cloudlog.warning("VIN %s", vin)
     Params().put("CarVin", vin)

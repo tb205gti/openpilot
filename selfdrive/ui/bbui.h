@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cereal/gen/c/ui.capnp.h"
+
 #if !defined(QCOM) && !defined(QCOM2)
 #ifndef __APPLE__
 #define GLFW_INCLUDE_ES2
@@ -14,7 +15,6 @@ int linux_abs_x = 0;
 int linux_abs_y = 0;
 UIState *mouse_ui_state;
 #endif
-
 // TODO: this is also hardcoded in common/transformations/camera.py
 
 
@@ -264,11 +264,12 @@ int bb_ui_draw_measure( UIState *s,  const char* bb_value, const char* bb_uom, c
 }
 
 
+
 bool bb_handle_ui_touch( UIState *s, int touch_x, int touch_y) {
 #if !defined(QCOM) && !defined(QCOM2)
-   touch_x = (int)(vwp_w * touch_x / 1280);
-   touch_y = (int)(vwp_h * touch_y / 720);
-   printf("Linux mouse up at %d, %d  ( %d, %d)\n",(int)touch_x, (int)touch_y, linux_abs_x, linux_abs_y);
+  touch_x = (int)(vwp_w * touch_x / 1280);
+  touch_y = (int)(vwp_h * touch_y / 720);
+  printf("Linux mouse up at %d, %d  ( %d, %d)\n",(int)touch_x, (int)touch_y, linux_abs_x, linux_abs_y);
 #endif
   for(int i=0; i<6; i++) {
     if (s->b.btns_r[i] > 0) {
@@ -311,16 +312,16 @@ bool bb_handle_ui_touch( UIState *s, int touch_x, int touch_y) {
 };
 
 #if !defined(QCOM) && !defined(QCOM2)
- void bb_mouse_event_handler(GLFWwindow* window, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+void bb_mouse_event_handler(GLFWwindow* window, int button, int action, int mods) {
+   if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
 
-          double xpos, ypos;
- 	glfwGetCursorPos(window, &xpos, &ypos);
- 	int w_width,w_height;
- 	glfwGetWindowSize(window, &linux_abs_x, &linux_abs_y);
-         bb_handle_ui_touch(mouse_ui_state,(int) xpos, (int)ypos);
-    }
- }
+        double xpos, ypos;
+	glfwGetCursorPos(window, &xpos, &ypos);
+	int w_width,w_height;
+	glfwGetWindowSize(window, &linux_abs_x, &linux_abs_y);
+        bb_handle_ui_touch(mouse_ui_state,(int) xpos, (int)ypos);
+   }
+}
 #endif
 
 
@@ -335,25 +336,6 @@ int bb_get_button_status( UIState *s, char *btn_name) {
 }
 
 void bb_draw_button( UIState *s, int btn_id) {
-/*
-0 = ALCA
-1 = ACCMode/PCCMode
-2 = Display
-3 = empty
-4 = MSG
-5 = Sound
-*/
-
-//  int btn_removed [6] = {0,0,1,0,1,1};
-//  int btn_disabled [6] = {1,1,1,1,1,1};
-  int btn_removed [6] = {0,0,0,0,0,0};
-  int btn_disabled [6] = {0,0,0,0,0,0};
-
-  if (btn_removed[btn_id] == 1){
-    return;
-  }
-
-
   const UIScene *scene = &s->scene;
 
   int viz_button_x = 0;
@@ -403,10 +385,6 @@ void bb_draw_button( UIState *s, int btn_id) {
     return;
   }
   
-  //hackish..
-  if (btn_disabled[btn_id] == 1 && s->b.btns_status[btn_id] != 2){
-    return;
-  }
   nvgBeginPath(s->vg);
   nvgRoundedRect(s->vg, viz_button_x, viz_button_y, viz_button_w, viz_button_h, 80);
   nvgStrokeWidth(s->vg, 12);
@@ -1033,8 +1011,6 @@ void ui_draw_vision_grid( UIState *s) {
 }
 
 void bb_ui_draw_logo( UIState *s) {
-return;
-
   if ((s->status != STATUS_DISENGAGED) && (s->status != STATUS_STOPPED)) { //(s->status != STATUS_DISENGAGED) {//
     return;
   }
@@ -1218,10 +1194,11 @@ void bb_ui_draw_UI( UIState *s) {
 	  const int bb_dmr_w = 180;
 	  const int bb_dmr_x = scene->ui_viz_rx + scene->ui_viz_rw - bb_dmr_w - (bdr_s*2) ; 
 	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
-//    bb_ui_draw_measures_left(s,bb_dml_x, bb_dml_y, bb_dml_w );
-//    bb_ui_draw_measures_right(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
+    bb_ui_draw_measures_left(s,bb_dml_x, bb_dml_y, bb_dml_w );
+    bb_ui_draw_measures_right(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
+    bb_ui_draw_logo(s);
 	 }
    if (s->b.tri_state_switch ==2) {
 	 	const UIScene *scene = &s->scene;
@@ -1234,6 +1211,7 @@ void bb_ui_draw_UI( UIState *s) {
 	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
+    bb_ui_draw_logo(s);
 	 }
 	 if (s->b.tri_state_switch ==3) {
     //we now use the state 3 for minimalistic data alerts
@@ -1292,15 +1270,13 @@ void bb_ui_init(UIState *s) {
     s->b.uiButtonStatus_sock = PubSocket::create(s->b.ctx, "uiButtonStatus"); //zsock_new_pub("@tcp://127.0.0.1:8204");
     s->b.gps_sock = SubSocket::create(s->b.ctx, "gpsLocationExternal"); //zsock_new_sub(">tcp://127.0.0.1:8032","");
     s->b.uiGyroInfo_sock = SubSocket::create(s->b.ctx, "uiGyroInfo"); //zsock_new_sub(">tcp://127.0.0.1:8207", "");
-    s->b.uiPedalInfo_sock = SubSocket::create(s->b.ctx, "uiPedalInfo");
     s->b.poller = Poller::create({
                               s->b.uiButtonInfo_sock,
                               s->b.uiCustomAlert_sock,
                               s->b.uiSetCar_sock,
                               s->b.uiPlaySound_sock,
                               s->b.gps_sock,
-                              s->b.uiGyroInfo_sock,
-                              s->b.uiPedalInfo_sock
+                              s->b.uiGyroInfo_sock
                              });
 
     //BB Load Images
@@ -1383,8 +1359,6 @@ void  bb_ui_poll_update( UIState *s) {
           }
           
           capn_free(&ctx);
-          // wakeup bg thread since status changed
-          pthread_cond_signal(&s->bg_cond);
         }  
         if (sock == s->b.uiSetCar_sock) {
           //set car model socket
@@ -1487,31 +1461,6 @@ void  bb_ui_poll_update( UIState *s) {
           
           capn_free(&ctx);
         }
-	if (sock == s->b.uiPedalInfo_sock){
-          //pedalinfo sock
-          struct capn ctx;
-          capn_init_mem(&ctx, (uint8_t*)msg->getData(), msg->getSize(), 0);
-          cereal_UIPedalInfo_ptr stp;
-          stp.p = capn_getp(capn_root(&ctx), 0, 1);
-          struct cereal_UIPedalInfo datad;
-          cereal_read_UIPedalInfo(&datad, stp);
-          s->b.pedalPos = datad.pedalpos;
-
-          capn_free(&ctx);
-        }
-        if (sock == s->b.uiPedalInfo_sock){
-           //pedalinfo sock
-           struct capn ctx;
-           capn_init_mem(&ctx, (uint8_t*)msg->getData(), msg->getSize(), 0);
-           cereal_UIPedalInfo_ptr stp;
-           stp.p = capn_getp(capn_root(&ctx), 0, 1);
-           struct cereal_UIPedalInfo datad;
-           cereal_read_UIPedalInfo(&datad, stp);
-           s->b.pedalPos = datad.pedalpos;
-
-            capn_free(&ctx);
-         }
-
         delete msg; 
       }  
     }

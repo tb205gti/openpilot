@@ -103,7 +103,7 @@ class CarInterface(CarInterfaceBase):
     ret.carName = "tesla"
     ret.carFingerprint = candidate
 
-    teslaModel = read_db('/data/params','TeslaModel')
+    teslaModel = read_db('/data/params/d/','TeslaModel')
     if teslaModel is not None:
       teslaModel = teslaModel.decode()
     if teslaModel is None:
@@ -141,23 +141,39 @@ class CarInterface(CarInterfaceBase):
       ret.lateralTuning.pid.kf = 0.00006 # Initial test value TODO: investigate FF steer control for Model S?
       ret.steerActuatorDelay = 0.2
 
+      #ret.steerReactance = 1.0
+      #ret.steerInductance = 1.0
+      #ret.steerResistance = 1.0
+          
       # Kp and Ki for the longitudinal control
-      if teslaModel == "SP":
+      if teslaModel == "S":
+        ret.longitudinalTuning.kpBP = [0., 5., 22.,  35.]
+        ret.longitudinalTuning.kpV = [0.50, 0.45, 0.4, 0.4]
+        ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
+        ret.longitudinalTuning.kiV = [0.01,0.01,0.01,0.01]
+      elif teslaModel == "SP":
         ret.longitudinalTuning.kpBP = [0., 5., 22., 35.] # 0km/h, 18 km/h, 80, 128km/h
         ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
         ret.longitudinalTuning.kpV = [0.3, 0.3, 0.35, 0.37]
         ret.longitudinalTuning.kiV = [0.07, 0.07, 0.093, 0.092]
-      #elif teslaModel == "SD":
-        # TODO
-      #elif teslaModel == "SPD":
-        # TODO
-      else:
-        if teslaModel != "S":
-          print("Tesla Model " + str(teslaModel) + " kp and ki params not implemented, using Model S values")
+      elif teslaModel == "SD":
         ret.longitudinalTuning.kpBP = [0., 5., 22., 35.]
-        ret.longitudinalTuning.kpV = [0.3, 0.3, 0.3, 0.3]
+        ret.longitudinalTuning.kpV = [0.50, 0.45, 0.4,0.4]
         ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
-        ret.longitudinalTuning.kiV = [0.08,0.08,0.08,0.08]
+        ret.longitudinalTuning.kiV = [0.01,0.01,0.01,0.01]
+      elif teslaModel == "SPD":
+        ret.longitudinalTuning.kpBP = [0., 5., 22., 35.]
+        ret.longitudinalTuning.kpV = [0.375, 0.325, 0.325, 0.325]
+        ret.longitudinalTuning.kiBP = [0., 5., 22.,35.]
+        ret.longitudinalTuning.kiV = [0.00915,0.00825,0.00725, 0.00725]
+      else:
+        #use S numbers if we can't match anything
+        ret.longitudinalTuning.kpBP = [0., 5., 22., 35.]
+        ret.longitudinalTuning.kpV = [0.375, 0.325, 0.3, 0.3]
+        ret.longitudinalTuning.kiBP = [0., 5., 22., 35.]
+        ret.longitudinalTuning.kiV = [0.08,0.08,0.08, 0.08]
+      
+
     else:
       raise ValueError("unsupported car %s" % candidate)
 
@@ -190,12 +206,12 @@ class CarInterface(CarInterfaceBase):
     ret.steerMaxV = [420.,420.]   # max steer allowed
 
     ret.gasMaxBP = [0., 20.]  # m/s
-    ret.gasMaxV = [0.25, 0.55] #if ret.enableGasInterceptor else [0.] # max gas allowed
+    ret.gasMaxV = [0.225, 0.525] #if ret.enableGasInterceptor else [0.] # max gas allowed
     ret.brakeMaxBP = [0.]  # m/s
     ret.brakeMaxV = [1.]   # max brake allowed - BB: since we are using regen, make this even
 
-    ret.longitudinalTuning.deadzoneBP = [0.]
-    ret.longitudinalTuning.deadzoneV = [0.]
+    ret.longitudinalTuning.deadzoneBP = [0.] #BB: added from Toyota to start pedal work; need to tune
+    ret.longitudinalTuning.deadzoneV = [0.] #BB: added from Toyota to start pedal work; need to tune; changed to 0 for now
 
     ret.stoppingControl = True
     ret.openpilotLongitudinalControl = True
@@ -405,8 +421,8 @@ class CarInterface(CarInterfaceBase):
     #else:
     #  if ret.brakePressed:
     #    events.append(create_event('pedalPressed', [ET.NO_ENTRY, ET.USER_DISABLE]))
-    if ret.gasPressed:
-      events.append(create_event('pedalPressed', [ET.PRE_ENABLE]))
+    #if ret.gasPressed:
+    #  events.append(create_event('pedalPressed', [ET.PRE_ENABLE]))
 
     # it can happen that car cruise disables while comma system is enabled: need to
     # keep braking if needed or if the speed is very low

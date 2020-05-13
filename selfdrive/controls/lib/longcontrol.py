@@ -1,7 +1,7 @@
 from cereal import log
 from common.numpy_fast import clip, interp
-#TB205gti added derivative to the PID controller
-from selfdrive.controls.lib.pid_real import PIController
+from selfdrive.controls.lib.pid import PIController
+from selfdrive.controls.lib.pid_real import PIDController
 
 LongCtrlState = log.ControlsState.LongControlState
 
@@ -58,15 +58,21 @@ def long_control_state_trans(active, long_control_state, v_ego, v_target, v_pid,
 
 class LongControl():
   def __init__(self, CP, compute_gb):
-    self.long_control_state = LongCtrlState.off  # initialized to off
 
-    kdBp = [0, 5., 22., 35.]
+    kdBp = [0, 5., 22.,35.]
     kdV = [0.02, 0.02, 0.022, 0.025]
-#TODO: use CP.longitudalTuning.kdBp and CP.longitudalTuning.kdV
 
-    self.pid = PIController((CP.longitudinalTuning.kpBP, CP.longitudinalTuning.kpV),
+    self.long_control_state = LongCtrlState.off  # initialized to off
+    if CP.carName == "tesla":
+      self.pid = PIDController((CP.longitudinalTuning.kpBP, CP.longitudinalTuning.kpV),
                             (CP.longitudinalTuning.kiBP, CP.longitudinalTuning.kiV),
                             (kdBp,kdV),
+                            rate=RATE,
+                            sat_limit=0.8,
+                            convert=compute_gb)
+    else:
+      self.pid = PIController((CP.longitudinalTuning.kpBP, CP.longitudinalTuning.kpV),
+                            (CP.longitudinalTuning.kiBP, CP.longitudinalTuning.kiV),
                             rate=RATE,
                             sat_limit=0.8,
                             convert=compute_gb)
@@ -81,8 +87,6 @@ class LongControl():
 
   def update(self, active, v_ego, brake_pressed, standstill, cruise_standstill, v_cruise, v_target, v_target_future, a_target, CP):
     """Update longitudinal control. This updates the state machine and runs a PID loop"""
-    
-
     # Actuation limits
     gas_max = interp(v_ego, CP.gasMaxBP, CP.gasMaxV)
     brake_max = interp(v_ego, CP.brakeMaxBP, CP.brakeMaxV)

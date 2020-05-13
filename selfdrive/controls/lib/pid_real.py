@@ -12,7 +12,7 @@ def apply_deadzone(error, deadzone):
     error = 0.
   return error
 
-class PIController():
+class PIDController():
   def __init__(self, k_p, k_i, k_d, k_f=0.85, pos_limit=None, neg_limit=None, rate=100, sat_limit=0.8, convert=None):
     self._k_p = k_p # proportional gain
     self._k_i = k_i # integral gain
@@ -76,10 +76,9 @@ class PIController():
     error = float(apply_deadzone(setpoint - measurement, deadzone))
     self.p = error * self.k_p
 
+    #clip the feedforward during the last 5 kmh for smooth transition
     clipped_error = clip(error,0,5)
     self.k_f = clipped_error * 0.2
-    #clip just to be absolutely sure?
-#    self.k_f = clip(self.k_f,0,1)
 
     self.f = feedforward * self.k_f
     self.d = 0.0
@@ -96,14 +95,11 @@ class PIController():
       if self.convert is not None:
         control = self.convert(control, speed=self.speed)
 
-      # Update when changing i will move the control away from the limits
-      # or when i will move towards the sign of the error
       if ((error >= 0 and (control <= self.pos_limit or i < 0.0)) or \
           (error <= 0 and (control >= self.neg_limit or i > 0.0))) and \
          not freeze_integrator:
         self.i = i
       else:
-        # re-calculate with unchanged i
         control = self.p + self.f + self.i + self.d
         if self.convert is not None:
           control = self.convert(control, speed=self.speed)

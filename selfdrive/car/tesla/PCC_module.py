@@ -22,7 +22,7 @@ RESET_PID_ON_DISENGAGE = False
 
 # TODO: these should end up in values.py at some point, probably variable by trim
 # Accel limits
-MAX_RADAR_DISTANCE = 130. #max distance to take in consideration radar reading
+MAX_RADAR_DISTANCE = 120. #max distance to take in consideration radar reading
 MAX_PEDAL_VALUE = 112.
 PEDAL_HYST_GAP = 1.0  # don't change pedal command for small oscilalitons within this value
 # Cap the pedal to go from 0 to max in 2 seconds
@@ -173,24 +173,25 @@ class PCCController():
     self.params = Params()
     average_speed_over_x_suggestions = 6 # 0.3 seconds (20x a second)
     self.fleet_speed = FleetSpeed(average_speed_over_x_suggestions)
-    
+
   def load_pid(self):
-    try:
-      v_pid_json = open(V_PID_FILE)
-      data = json.load(v_pid_json)
-      if (self.LoC):
-        if self.LoC.pid:
-          self.LoC.pid.p = data['p']
-          self.LoC.pid.i = data['i']
-          if 'd' not in data:
-            self.Loc.pid.d = 0.01
-          else:
-            self.LoC.pid.d = data['d']
-          self.LoC.pid.f = data['f']
-      else:
-        print("self.LoC not initialized!")
-    except :
-      print("file not present, creating at next reset")
+      try:
+        v_pid_json = open(V_PID_FILE)
+        data = json.load(v_pid_json)
+        if (self.LoC):
+          if self.LoC.pid:
+            self.LoC.pid.p = data['p']
+            self.LoC.pid.i = data['i']
+            if 'd' not in data:
+              self.Loc.pid.d = 0.01
+            else:
+              self.LoC.pid.d = data['d']
+            self.LoC.pid.f = data['f']
+        else:
+          print("self.LoC not initialized!")
+      except :
+        print("file not present, creating at next reset")
+
 
     #Helper function for saving the PCC pid constants across drives
   def save_pid(self, pid):
@@ -361,9 +362,16 @@ class PCCController():
         self.continuous_lead_sightings += 1
       else:
         self.continuous_lead_sightings = 0
+      
 
     v_ego = CS.v_ego
-    accel_limits = [float(x) for x in calc_cruise_accel_limits(v_ego, _is_present(self.lead_1))]
+
+    following = False
+    if self.lead_1:
+      following = self.lead_1.status and self.lead_1.dRel < MAX_RADAR_DISTANCE and self.lead_1.vLeadK > v_ego and self.lead_1.aLeadK > 0.0
+    accel_limits = [float(x) for x in calc_cruise_accel_limits(v_ego,following,is_tesla=True)]
+
+
     accel_limits[1] *= _accel_limit_multiplier(CS, self.lead_1)
     accel_limits[0] = _decel_limit(accel_limits[0], CS.v_ego, self.lead_1, CS, self.pedal_speed_kph)
     jerk_limits = [min(-0.1, accel_limits[0]/2.), max(0.1, accel_limits[1]/2.)]  # TODO: make a separate lookup for jerk tuning
@@ -402,7 +410,7 @@ class PCCController():
                                                       accel_limits[1], accel_limits[0],
                                                       jerk_limits[1], jerk_limits[0],
                                                       _DT_MPC)
-        
+
         # cruise speed can't be negative even is user is distracted
         self.v_cruise = max(self.v_cruise, 0.)
 
@@ -418,9 +426,13 @@ class PCCController():
         self.v_acc_start = self.v_acc_sol
         self.a_acc_start = self.a_acc_sol
 
+        # we will try to feed forward the pedal position.... we might want to feed the last_output_gb....
+        # op feeds forward self.a_acc_sol
+        # it's all about testing now.
         vTarget = clip(self.v_acc_sol, 0, self.v_cruise)
         self.vTargetFuture = clip(self.v_acc_future, 0, self.v_pid)
         feedforward = self.a_acc_sol
+        #feedforward = self.last_output_gb
         t_go, t_brake = self.LoC.update(self.enable_pedal_cruise, CS.v_ego, CS.brake_pressed != 0, CS.standstill, False, 
                     self.v_cruise , vTarget, self.vTargetFuture, feedforward, CS.CP)
         output_gb = t_go - t_brake
@@ -455,7 +467,7 @@ class PCCController():
 
     self.last_output_gb = output_gb
     # accel and brake
-    apply_accel = clip(output_gb, 0., 1.)
+    apply_accel = clip(output_gb, 0., 1) #_accel_pedal_max(CS.v_ego, self.v_pid, self.lead_1, self.prev_tesla_accel, CS))
     MPC_BRAKE_MULTIPLIER = 6.
     apply_brake = -clip(output_gb * MPC_BRAKE_MULTIPLIER, _brake_pedal_min(CS.v_ego, self.v_pid, self.lead_1, CS, self.pedal_speed_kph), 0.)
 
@@ -656,20 +668,17 @@ def _interp_map(val, val_map):
   """Helper to call interp with an OrderedDict for the mapping. I find
   this easier to read than interp, which takes two arrays."""
   return interp(val, list(val_map.keys()), list(val_map.values()))
-
+  
 def _accel_limit_multiplier(CS, lead):
   """Limits acceleration in the presence of a lead car. The further the lead car
   is, the more accel is allowed. Range: 0 to 1, so that it can be multiplied
   with other accel limits."""
-  if not _is_present(lead):
-    return 1.
-
   accel_by_speed = OrderedDict([
     # (speed m/s, decel)
-      (0.,  0.985),  #   0 kmh
-      (10., 0.975),  #  35 kmh
-      (20., 0.95),  #  72 kmh
-      (30., 0.9)]) # 107 kmh
+      (0.,  0.95),  #   0 kmh
+      (10., 0.95),  #  35 kmh
+      (20., 0.925),  #  72 kmh
+      (30., 0.875)]) # 107 kmh
   if CS.teslaModel in ["SP","SPD"]:
       accel_by_speed = OrderedDict([
         # (speed m/s, decel)
@@ -678,18 +687,21 @@ def _accel_limit_multiplier(CS, lead):
         (20., 0.95),  #  72 kmh
         (30., 0.9)]) # 107 kmh
   accel_mult = _interp_map(CS.v_ego, accel_by_speed)
+  if _is_present(lead):
+    safe_dist_m = _safe_distance_m(CS.v_ego,CS)
+    accel_multipliers = OrderedDict([
+      # (distance in m, acceleration fraction)
+      (0.6 * safe_dist_m, 0.15),
+      (1.0 * safe_dist_m, 0.2),
+      (3.0 * safe_dist_m, 0.4)])
+    vrel_multipliers = OrderedDict([
+      # vrel m/s, accel mult
+      (0. , 1.),
+      (10., 1.5)])
 
-  safe_dist_m = _safe_distance_m(CS.v_ego,CS)
-  accel_multipliers = OrderedDict([
-    # (distance in m, acceleration fraction)
-    (0.6 * safe_dist_m, 0.15),
-    (1.0 * safe_dist_m, 0.2),
-    (3.0 * safe_dist_m, 0.4)])
-  vrel_multipliers = OrderedDict([
-    # vrel m/s, accel mult
-    (0. , 1.),
-    (10., 1.5)])
-  return min(accel_mult * _interp_map(lead.vRel, vrel_multipliers) * _interp_map(lead.dRel, accel_multipliers),1.0)
+    return min(accel_mult * _interp_map(lead.vRel, vrel_multipliers) * _interp_map(lead.dRel, accel_multipliers),1.0)
+  else:
+    return min(accel_mult * 0.4, 1.0)
 
 def _decel_limit(accel_min,v_ego, lead, CS, max_speed_kph):
   max_speed_mult = 1.
@@ -759,3 +771,4 @@ def _brake_pedal_min(v_ego, v_target, lead, CS, max_speed_kph):
     brake_mult2 = _interp_map(lead.dRel, brake_distance_map)
   brake_mult = max(brake_mult1, brake_mult2)
   return -brake_mult
+

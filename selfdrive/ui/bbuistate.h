@@ -8,14 +8,14 @@ typedef struct UICstmButton {
 } UICstmButton;
 
 typedef struct BBUIState {
-     float scr_scale_x;
-     float scr_scale_y;
-     int scr_w;
-     int scr_h;
-     float scr_device_factor;
-     float scr_scissor_offset;
+    float scr_scale_x;
+    float scr_scale_y;
+    int scr_w;
+    int scr_h;
+    float scr_device_factor;
+    float scr_scissor_offset;
 #if !defined(QCOM) && !defined(QCOM2)
-     Display *scr_display;
+    Display *scr_display;
 #endif
     int touch_last_x;
     int touch_last_y;
@@ -35,7 +35,6 @@ typedef struct BBUIState {
     PubSocket *uiButtonStatus_sock;
     SubSocket *gps_sock;
     SubSocket *uiGyroInfo_sock;
-    SubSocket *uiPedalInfo_sock;
     Poller * poller;
     int btns_x[6];
     int btns_y[6];
@@ -69,5 +68,4 @@ typedef struct BBUIState {
     uint16_t fanSpeed;
     bool keepEonOff;
     bool recording;
-    float pedalPos;
 } BBUIState;

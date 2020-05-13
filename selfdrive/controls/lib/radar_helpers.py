@@ -22,23 +22,30 @@ class Track():
     self.K_K = kalman_params.K
     self.kf = KF1D([[v_lead], [0.0]], self.K_A, self.K_C, self.K_K)
 
-  def update(self, d_rel, y_rel, v_rel,measured, a_rel, vy_rel, oClass, length, track_id,movingState, d_path, v_ego_t_aligned,use_tesla_radar):
+  def update(self, d_rel, y_rel, v_rel,measured, a_rel, vy_rel, oClass, length, track_id,movingState, d_path, v_ego_t_aligned,v_lead,use_tesla_radar):
     
     # relative values, copy
     self.dRel = d_rel   # LONG_DIST
     self.yRel = y_rel   # -LAT_DIST
     self.vRel = v_rel   # REL_SPEED
-    self.aRel = a_rel   # rel acceleration
-    self.vLat = vy_rel  # rel lateral speed
-    self.oClass = oClass # object class
-    self.length = length #length
+    self.vLead = v_lead
     self.measured = measured   # measured or estimate
     self.track_id = track_id
-    self.dPath = d_path
-    self.stationary = (movingState == 3)
+    self.oClass = oClass # object class
 
-    # computed velocity and accelerations
-    self.vLead = self.vRel + v_ego_t_aligned
+    if use_tesla_radar:
+      self.aRel = a_rel   # rel acceleration
+      self.vLat = vy_rel  # rel lateral speed
+      self.length = length #length
+      self.measured = measured   # measured or estimate
+      self.dPath = d_path
+      self.stationary = (movingState == 3)
+    else:
+      self.aRel = float('nan')   # rel acceleration
+      self.vLat = float('nan')  # rel lateral speed
+      self.length = 0.  #length
+      self.dPath = 0.
+      self.stationary = False
 
       
     if self.cnt > 0:
@@ -136,7 +143,7 @@ class Cluster():
 
   @property
   def oClass(self):
-    return max([t.oClass for t in self.tracks])
+    return min([t.oClass for t in self.tracks])
 
   @property
   def length(self):
@@ -144,7 +151,7 @@ class Cluster():
   
   @property
   def track_id(self):
-    return mean([t.track_id for t in self.tracks])
+    return max([t.track_id for t in self.tracks])
  
   @property
   def stationary(self):
@@ -196,17 +203,8 @@ class Cluster():
     # lookahead time depends on cut-in distance. more attentive for close cut-ins
     # also, above 50 meters the predicted path isn't very reliable
 
-    # the distance at which v_lat matters is higher at higher speed
-    lookahead_dist = 40. + v_ego/1.2   #40m at 0mph, ~70m at 80mph
-
-    t_lookahead_v  = [1., 0.]
-    t_lookahead_bp = [10., lookahead_dist]
-
     # average dist
     d_path = self.dPath
-
-    # lat_corr used to be gated on enabled, now always running
-    t_lookahead = interp(self.dRel, t_lookahead_bp, t_lookahead_v)
 
     # correct d_path for lookahead time, considering only cut-ins and no more than 1m impact.
     lat_corr = 0. # BB disables for now : clip(t_lookahead * self.vLat, -1., 1.) if self.measured else 0.
@@ -214,7 +212,7 @@ class Cluster():
     # consider only cut-ins
     d_path = clip(d_path + lat_corr, min(0., d_path), max(0.,d_path))
 
-    return abs(d_path) < 1.5 and not self.stationary and not self.oncoming
+    return abs(d_path) < 1.5 and not self.stationary #and not self.oncoming
 
   def is_potential_lead_dy(self, v_ego,dy):
     # predict cut-ins by extrapolating lateral speed by a lookahead time

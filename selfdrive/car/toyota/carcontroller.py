@@ -29,29 +29,14 @@ def accel_hysteresis(accel, accel_steady, enabled):
   return accel, accel_steady
 
 
-def process_hud_alert(hud_alert):
-  # initialize to no alert
-  steer = 0
-  fcw = 0
-
-  if hud_alert == VisualAlert.fcw:
-    fcw = 1
-  elif hud_alert == VisualAlert.steerRequired:
-    steer = 1
-
-  return steer, fcw
-
-
 class CarController():
   def __init__(self, dbc_name, CP, VM):
-    self.braking = False
     self.last_steer = 0
     self.accel_steady = 0.
-    self.car_fingerprint = CP.carFingerprint
     self.alert_active = False
     self.last_standstill = False
     self.standstill_req = False
- 
+
     self.last_fault_frame = -200
     self.steer_rate_limited = False
 
@@ -79,16 +64,7 @@ class CarController():
 
     apply_accel, self.accel_steady = accel_hysteresis(apply_accel, self.accel_steady, enabled)
     apply_accel = clip(apply_accel * ACCEL_SCALE, ACCEL_MIN, ACCEL_MAX)
-    # Get the angle from ALCA.
-    alca_enabled = False
-    alca_steer = 0.
-    alca_angle = 0.
-    turn_signal_needed = 0
-    # Update ALCA status and custom button every 0.1 sec.
-    if self.ALCA.pid == None:
-      self.ALCA.set_pid(CS)
-    if (frame % 10 == 0):
-      self.ALCA.update_status(CS.cstm_btns.get_button_status("alca") > 0)
+
     # steer torque
     new_steer = int(round(actuators.steer * SteerLimitParams.STEER_MAX))
     apply_steer = apply_toyota_steer_torque_limits(new_steer, self.last_steer, CS.out.steeringTorqueEps, SteerLimitParams)
@@ -151,30 +127,28 @@ class CarController():
     # ui mesg is at 100Hz but we send asap if:
     # - there is something to display
     # - there is something to stop displaying
-    alert_out = process_hud_alert(hud_alert)
-    steer, fcw = alert_out
+    fcw_alert = hud_alert == VisualAlert.fcw
+    steer_alert = hud_alert == VisualAlert.steerRequired
 
-    if (any(alert_out) and not self.alert_active) or \
-       (not any(alert_out) and self.alert_active):
+    send_ui = False
+    if ((fcw_alert or steer_alert) and not self.alert_active) or \
+       (not (fcw_alert or steer_alert) and self.alert_active):
       send_ui = True
       self.alert_active = not self.alert_active
-    else:
-      send_ui = False
-
-    # disengage msg causes a bad fault sound so play a good sound instead
-    if pcm_cancel_cmd:
+    elif pcm_cancel_cmd:
+      # forcing the pcm to disengage causes a bad fault sound so play a good sound instead
       send_ui = True
 
     if (frame % 100 == 0 or send_ui) and Ecu.fwdCamera in self.fake_ecus:
-      can_sends.append(create_ui_command(self.packer, steer, pcm_cancel_cmd, left_line, right_line, left_lane_depart, right_lane_depart))
+      can_sends.append(create_ui_command(self.packer, steer_alert, pcm_cancel_cmd, left_line, right_line, left_lane_depart, right_lane_depart))
 
     if frame % 100 == 0 and Ecu.dsu in self.fake_ecus:
-      can_sends.append(create_fcw_command(self.packer, fcw))
+      can_sends.append(create_fcw_command(self.packer, fcw_alert))
 
     #*** static msgs ***
 
     for (addr, ecu, cars, bus, fr_step, vl) in STATIC_MSGS:
-      if frame % fr_step == 0 and ecu in self.fake_ecus and self.car_fingerprint in cars:
+      if frame % fr_step == 0 and ecu in self.fake_ecus and CS.CP.carFingerprint in cars:
         can_sends.append(make_can_msg(addr, vl, bus))
 
     return can_sends

@@ -348,11 +348,6 @@ class CarController():
 
     self.blinker.update_state(CS, frame)
 
-
-    #PKA Send pedal info to be used in the UI
-    if (frame % 50 == 0):
-      CS.UE.uiPedalInfoEvent(int(CS.pedal_interceptor_value))
-
     # update PCC module info
     pedal_can_sends = self.PCC.update_stat(CS, frame)
     if self.PCC.pcc_available:
