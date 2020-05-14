@@ -20,7 +20,9 @@ a.out
 .*.un~
 *.tmp
 *.o
+*.o-*
 *.os
+*.os-*
 *.so
 *.a
 *.clb
@@ -29,15 +31,8 @@ a.out
 *.vcd
 config.json
 clcache
-<<<<<<< HEAD
-launch_chffrplus.sh
-.vscode/*.json
-selfdrive/visiond/visiond
-.vscode/
-=======
 
 persist
->>>>>>> cc6358d983479e918d8deac95554c39ed5866e1a
 board/obj/
 selfdrive/boardd/boardd
 selfdrive/logcatd/logcatd
@@ -53,22 +48,13 @@ selfdrive/camerad/camerad
 selfdrive/modeld/_modeld
 selfdrive/modeld/_dmonitoringmodeld
 /src/
+
 one
-.vscode/*.json
-./launch_chffrplus.sh
 openpilot
 notebooks
 xx
 panda_jungle
 
-<<<<<<< HEAD
-/selfdrive/tinklad/params
-/selfdrive/tinklad/bb_openpilot.cfg
-/selfdrive/tinklad/tinklad-cache
-/selfdrive/tinklad/bb_openpilot_config.cfg
-=======
 .coverage*
 htmlcov
 pandaextra
-
->>>>>>> d4eb5a6eafdd4803d09e6f3963918216cca5a81f
