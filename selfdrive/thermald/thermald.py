@@ -249,7 +249,7 @@ def thermald_thread():
         ignition = health.health.ignitionLine or health.health.ignitionCan
 
       # Setup fan handler on first connect to panda
-      if handle_fan is None and health.health.hwType != log.HealthData.HwType.unknown:
+      if handle_fan is None: #and health.health.hwType != log.HealthData.HwType.unknown:
         is_uno = health.health.hwType == log.HealthData.HwType.uno
 
         if is_uno or not ANDROID:
