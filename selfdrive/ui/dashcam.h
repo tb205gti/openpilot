@@ -236,7 +236,7 @@ static void screen_draw_button(UIState *s, int touch_x, int touch_y) {
   if (s->vision_connected ){// && s->active_app == cereal_UiLayoutState_App_home) {
 
 
-  LOGW("==================== DASHCAM STARTED =============");
+//  LOGW("==================== DASHCAM STARTED =============");
 
     if (captureState == CAPTURE_STATE_CAPTURING) {
       draw_lock_button(s);
