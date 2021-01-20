@@ -39,7 +39,7 @@ extern "C" void framebuffer_swap(FramebufferState *s) {
 
 extern "C" bool set_brightness(int brightness) {
   char bright[64];
-  snprintf(bright, sizeof(bright), "%d", 50) //brightness);
+  snprintf(bright, sizeof(bright), "%d", 50); //brightness);
   return 0 == write_file("/sys/class/leds/lcd-backlight/brightness", bright, strlen(bright));
 }
 
