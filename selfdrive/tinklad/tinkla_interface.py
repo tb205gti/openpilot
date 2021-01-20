@@ -1,10 +1,11 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
+# Created by Raf 5/2019
 
 from cereal import tinkla
 import os
 import zmq
 import datetime
-import tinklad
+from selfdrive.tinklad import tinklad
 import time
 
 ## For helpers:
@@ -12,6 +13,7 @@ import traceback
 from selfdrive.car.tesla.readconfig import CarSettings
 from common.params import Params
 
+LOG_PREFIX = "tinklad client: "
 
 tinklaClient = None
 
@@ -48,7 +50,6 @@ class TinklaClient():
         except zmq.ZMQError:
             print("Unable to connect to tinklad")
             self.sock = None
-
 
     def setUserInfo(self, info):
         self.start_client()
@@ -117,6 +118,8 @@ class TinklaClient():
         self.logUserEvent(event)
 
     def logCANErrorEvent(self, source, canMessage, additionalInformation, openPilotId = None):
+        if not self.carSettings.shouldLogCanErrors:
+            return
         if self.shouldThrottleCanErrorEvents:
             now = time.time()
             if now - self.lastCanErrorTimestamp < self.throttlingPeriodInSeconds:
@@ -138,6 +141,8 @@ class TinklaClient():
         self.logUserEvent(event)
 
     def logProcessCommErrorEvent(self, source, processName, count, eventType, openPilotId = None):
+        if not self.carSettings.shouldLogProcessCommErrors:
+            return
         if self.shouldThrottleProcessCommErrorEvents:
             now = time.time()
             if now - self.lastProcessErrorTimestamp < self.throttlingPeriodInSeconds:
@@ -162,10 +167,16 @@ class TinklaClient():
         print(message)
 
     def __init__(self):
-        carSettings = CarSettings()
-        params = Params()
+        try:
+            params = Params()
+        except OSError:
+            params = Params(db="./params")
+        try:
+            self.carSettings = CarSettings()
+        except IOError:
+            self.carSettings = CarSettings(optional_config_file_path="./bb_openpilot.cfg")
         self.openPilotId = params.get("DongleId")
-        self.userHandle = carSettings.userHandle
+        self.userHandle = self.carSettings.userHandle
         self.gitRemote = params.get("GitRemote")
         self.gitBranch = params.get("GitBranch")
         self.gitHash = params.get("GitCommit")
