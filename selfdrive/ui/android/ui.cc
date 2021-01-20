@@ -48,7 +48,7 @@ static void handle_display_state(UIState *s, bool user_input) {
   // determine desired state
   bool should_wake = s->awake;
 //  if (user_input || s->ignition || s->started) {
-  if (user_input || !s->b.keepEonOff || s->b.recording) {
+  if (user_input) { //|| !s->b.keepEonOff || s->b.recording) {
     should_wake = true;
     awake_timeout = 30*UI_FREQ;
   } else if (awake_timeout == 0){
