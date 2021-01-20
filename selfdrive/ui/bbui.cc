@@ -961,6 +961,7 @@ void ui_draw_vision_grid( UIState *s) {
 }
 
 void bb_ui_draw_logo( UIState *s) {
+return; //naah no logo for me
   if ((s->status != STATUS_DISENGAGED)) { //&& (s->status != STATUS_STOPPED)) { //(s->status != STATUS_DISENGAGED) {//
     return;
   }
@@ -1127,24 +1128,24 @@ bool bb_ui_read_triState_switch( UIState *s) {
 
 void bb_ui_draw_UI( UIState *s) {
   
-  const UIScene *scene = &s->scene;
-  const Rect &viz_rect = s->scene.viz_rect;
-  const int box_y = viz_rect.y;
+//  const UIScene *scene = &s->scene;
+//  const Rect &viz_rect = s->scene.viz_rect;
+//  const int box_y = viz_rect.y;
 
   if (s->b.tri_state_switch == 1) {
 
-	  const int bb_dml_w = 180;
-	  const int bb_dml_x =  (scene->viz_rect.x + (bdr_s*2));
-	  const int bb_dml_y = (box_y + (bdr_s*1.5))+220;
+	//  const int bb_dml_w = 180;
+	//  const int bb_dml_x =  (scene->viz_rect.x + (bdr_s*2));
+	//  const int bb_dml_y = (box_y + (bdr_s*1.5))+220;
 	  
-	  const int bb_dmr_w = 180;
-	  const int bb_dmr_x = scene->viz_rect.x + scene->viz_rect.w - bb_dmr_w - (bdr_s*2) ; 
-	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
-    bb_ui_draw_measures_left(s,bb_dml_x, bb_dml_y, bb_dml_w );
-    bb_ui_draw_measures_right(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
+//	  const int bb_dmr_w = 180;
+//	  const int bb_dmr_x = scene->viz_rect.x + scene->viz_rect.w - bb_dmr_w - (bdr_s*2) ; 
+//	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
+    //bb_ui_draw_measures_left(s,bb_dml_x, bb_dml_y, bb_dml_w );
+    //bb_ui_draw_measures_right(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
-    bb_ui_draw_logo(s);
+    //bb_ui_draw_logo(s);
 	 }
    if (s->b.tri_state_switch ==2) {
 	 	// const UIScene *scene = &s->scene;
@@ -1157,20 +1158,20 @@ void bb_ui_draw_UI( UIState *s) {
 	  // const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
-    bb_ui_draw_logo(s);
+    //bb_ui_draw_logo(s);
 	 }
 	 if (s->b.tri_state_switch ==3) {
     //we now use the state 3 for minimalistic data alerts
-	 	const UIScene *scene = &s->scene;
-	  const int bb_dml_w = 180;
-	  const int bb_dml_x =  (scene->viz_rect.x + (bdr_s*2));
-	  const int bb_dml_y = (box_y + (bdr_s*1.5))+220;
+//	 	const UIScene *scene = &s->scene;
+//	  const int bb_dml_w = 180;
+//	  const int bb_dml_x =  (scene->viz_rect.x + (bdr_s*2));
+//	  const int bb_dml_y = (box_y + (bdr_s*1.5))+220;
 	  
-	  const int bb_dmr_w = 180;
-	  const int bb_dmr_x = scene->viz_rect.x + scene->viz_rect.w - bb_dmr_w - (bdr_s*2) ; 
-	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
-    bb_ui_draw_measures_left2(s,bb_dml_x, bb_dml_y, bb_dml_w );
-    bb_ui_draw_measures_right2(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
+//	  const int bb_dmr_w = 180;
+//	  const int bb_dmr_x = scene->viz_rect.x + scene->viz_rect.w - bb_dmr_w - (bdr_s*2) ; 
+//	  const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
+    //bb_ui_draw_measures_left2(s,bb_dml_x, bb_dml_y, bb_dml_w );
+    //bb_ui_draw_measures_right2(s,bb_dmr_x, bb_dmr_y, bb_dmr_w );
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
 	 }
@@ -1186,7 +1187,7 @@ void bb_ui_draw_UI( UIState *s) {
     // const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
-    bb_ui_draw_gyro(s);
+    //bb_ui_draw_gyro(s);
    }
 }
 
