@@ -1070,98 +1070,6 @@ void bb_ui_draw_logo( UIState *s) {
   nvgFill(s->vg);
 }
 
-void bb_ui_draw_gyro(UIState *s) {
-  //draw the gyro data
-  const UIScene *scene = &s->scene;
-  const float prc = 0.6;
-  const int sc_h = 820;
-  const int sc_w = scene->ui_viz_rw;
-  const int sc_x = bdr_s + scene->ui_viz_rx;
-  const int sc_y = 100;
-  const int sc_cx = (int)(sc_x + sc_w /2);
-  const int sc_cy =  (int)(sc_y + sc_h/2);
-  const int l_w = (int)(sc_w * prc / 2);
-
-  const int p_w = (int)((sc_cx - l_w - sc_x)*prc);
-  const int p_x = (int)(bdr_s +(sc_cx - l_w - p_w)/2);
-  const int p_max_h = (int)(sc_h * prc /2);
-
-  nvgBeginPath(s->vg);
-  //white for the base line
-  nvgStrokeColor(s->vg, nvgRGBA(255,255,255,200));
-  nvgStrokeWidth(s->vg, 4);
-  nvgMoveTo(s->vg, sc_cx - l_w, sc_cy);
-  nvgLineTo(s->vg, sc_cx +l_w, sc_cy);
-  nvgStroke(s->vg);
-
-  //compute angle vs horizontal axis based on roll
-  const float r_ang_rad = -s->b.accRoll; 
-  const float p_ang_rad = -s->b.accPitch; 
-
-  //roll
-  //acc roll - green
-  nvgSave(s->vg);
-  nvgTranslate(s->vg, sc_cx, sc_cy);
-  nvgRotate(s->vg, r_ang_rad);
-  nvgBeginPath(s->vg);
-  //green for the real horizontal line based on ACC
-  nvgStrokeColor(s->vg, nvgRGBA(28, 204,98,200));
-  nvgStrokeWidth(s->vg, 4);
-  nvgMoveTo(s->vg,  -l_w, 0);
-  nvgLineTo(s->vg,  +l_w, 0);
-  nvgStroke(s->vg);
-  nvgRestore(s->vg);
-  //mag roll - yellow
-  nvgSave(s->vg);
-  nvgTranslate(s->vg, sc_cx, sc_cy);
-  nvgRotate(s->vg, -s->b.magRoll);
-  nvgBeginPath(s->vg);
-  //yellow for the real horizontal line based on MAG
-  nvgStrokeColor(s->vg, nvgRGBA(255, 255,0,200));
-  nvgStrokeWidth(s->vg, 4);
-  nvgMoveTo(s->vg,  -l_w, 0);
-  nvgLineTo(s->vg,  +l_w, 0);
-  nvgStroke(s->vg);
-  nvgRestore(s->vg);
-  //gyro roll - red
-  nvgSave(s->vg);
-  nvgTranslate(s->vg, sc_cx, sc_cy);
-  nvgRotate(s->vg, -s->b.gyroRoll);
-  nvgBeginPath(s->vg);
-  //red for the real horizontal line based on GYRO
-  nvgStrokeColor(s->vg, nvgRGBA(255, 0,0,200));
-  nvgStrokeWidth(s->vg, 4);
-  nvgMoveTo(s->vg,  -l_w, 0);
-  nvgLineTo(s->vg,  +l_w, 0);
-  nvgStroke(s->vg);
-  nvgRestore(s->vg);
-
-  //pitch
-  const int p_y = sc_cy;
-  //double height to accentuate change
-  const int p_h = (int)(p_max_h * sin(p_ang_rad) );
-  nvgBeginPath(s->vg);
-  //fill with red
-  nvgFillColor(s->vg, nvgRGBA(255, 0, 0, 200));
-  nvgStrokeColor(s->vg, nvgRGBA(255, 0, 0, 200)); 
-  nvgRect(s->vg, p_x, p_y, p_w, p_h);
-  nvgFill(s->vg);
-  nvgStroke(s->vg);
-  //draw middle line white
-  nvgBeginPath(s->vg);
-  nvgStrokeColor(s->vg, nvgRGBA(255,255,255,200));
-  nvgStrokeWidth(s->vg, 4);
-  nvgMoveTo(s->vg,  p_x,p_y);
-  nvgLineTo(s->vg,  p_x + p_w, p_y);
-  nvgStroke(s->vg);
-  //draw horizon with green
-  nvgBeginPath(s->vg);
-  nvgStrokeColor(s->vg, nvgRGBA(28, 204,98,200));
-  nvgMoveTo(s->vg,  p_x,p_y+p_h);
-  nvgLineTo(s->vg,  p_x + p_w, p_y+p_h);
-  nvgStroke(s->vg);
-}
-
 void bb_ui_read_triState_switch( UIState *s) {
   //get 3-state switch position
   int tri_state_fd;
@@ -1264,7 +1172,6 @@ void bb_ui_draw_UI( UIState *s) {
     const int bb_dmr_y = (box_y + (bdr_s*1.5))+220;
     bb_draw_buttons(s);
     bb_ui_draw_custom_alert(s);
-    bb_ui_draw_gyro(s);
    }
 }
 
@@ -1293,7 +1200,7 @@ void bb_ui_init(UIState *s) {
     s->b.uiPlaySound_sock = SubSocket::create(s->b.ctx, "uiPlaySound"); //zsock_new_sub(">tcp://127.0.0.1:8205", "");
     s->b.uiButtonStatus_sock = PubSocket::create(s->b.ctx, "uiButtonStatus"); //zsock_new_pub("@tcp://127.0.0.1:8204");
     s->b.gps_sock = SubSocket::create(s->b.ctx, "gpsLocationExternal"); //zsock_new_sub(">tcp://127.0.0.1:8032","");
-    s->b.uiGyroInfo_sock = SubSocket::create(s->b.ctx, "uiGyroInfo"); //zsock_new_sub(">tcp://127.0.0.1:8207", "");
+    //s->b.uiGyroInfo_sock = SubSocket::create(s->b.ctx, "uiGyroInfo"); //zsock_new_sub(">tcp://127.0.0.1:8207", "");
     s->b.uiPedalInfo_sock = SubSocket::create(s->b.ctx, "uiPedalInfo");
     s->b.poller = Poller::create({
                               s->b.uiButtonInfo_sock,
@@ -1301,7 +1208,7 @@ void bb_ui_init(UIState *s) {
                               s->b.uiSetCar_sock,
                               s->b.uiPlaySound_sock,
                               s->b.gps_sock,
-                              s->b.uiGyroInfo_sock,
+                              //s->b.uiGyroInfo_sock,
                               s->b.uiPedalInfo_sock
                              });
 
@@ -1466,7 +1373,7 @@ void  bb_ui_poll_update( UIState *s) {
             }
             capn_free(&ctx);
         }
-        if (sock == s->b.uiGyroInfo_sock) {
+/*        if (sock == s->b.uiGyroInfo_sock) {
           //gyro info socket
           struct capn ctx;
           capn_init_mem(&ctx, (uint8_t*)msg->getData(), msg->getSize(), 0);
@@ -1487,7 +1394,7 @@ void  bb_ui_poll_update( UIState *s) {
           
           capn_free(&ctx);
         }
-
+*/
         if (sock == s->b.uiPedalInfo_sock){
           //pedalinfo sock
           struct capn ctx;

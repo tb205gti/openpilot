@@ -112,9 +112,9 @@ class CarController():
     self.magPitch = 0.
     self.magRoll = 0.
     self.magYaw = 0.
-    #self.gyroPitch = 0.
-    #self.gyroRoll = 0.
-    #self.gyroYaw = 0.
+    self.gyroPitch = 0.
+    self.gyroRoll = 0.
+    self.gyroYaw = 0.
     self.set_speed_limit_active = False
     self.speed_limit_offset = 0.
     self.speed_limit_ms = 0.
@@ -347,7 +347,7 @@ class CarController():
       self.gpsLocationExternal.send(sol.to_bytes())
 
     #get pitch/roll/yaw every 0.1 sec
-#    if (frame %10 == 0):
+#    if (frame %200 == 0):
 #      (self.accPitch, self.accRoll, self.accYaw),(self.magPitch, self.magRoll, self.magYaw),(self.gyroPitch, self.gyroRoll, self.gyroYaw) = self.GYRO.update(CS.v_ego,CS.a_ego,CS.angle_steers)
 #      CS.UE.uiGyroInfoEvent(self.accPitch, self.accRoll, self.accYaw,self.magPitch, self.magRoll, self.magYaw,self.gyroPitch, self.gyroRoll, self.gyroYaw)
 
