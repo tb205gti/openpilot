@@ -46,6 +46,8 @@ MIN_CAN_SPEED = 0.3  #TODO: parametrize this in car interface
 
 # Pull the cruise stalk twice in this many ms for a 'double pull'
 STALK_DOUBLE_PULL_MS = 750
+#HOLD for 3 seconds to run on only Long control
+STALK_HOLD_MS = 3000
 
 V_PID_FILE = '/data/params/pidParams'
 
@@ -137,6 +139,8 @@ class PCCController():
     self.last_update_time = 0
     self.enable_pedal_cruise = False
     self.stalk_pull_time_ms = 0
+    self.long_count = 0
+    self.long_pull = False
     self.prev_stalk_pull_time_ms = -1000
     self.prev_pcm_acc_status = 0
     self.prev_cruise_buttons = CruiseButtons.IDLE
@@ -246,11 +250,18 @@ class PCCController():
     speed_uom_kph = 1.
     if CS.imperial_speed_units:
       speed_uom_kph = CV.MPH_TO_KPH
-    if (CS.cruise_buttons == CruiseButtons.MAIN and
+
+    if (CS.cruise_buttons == CruiseButtons.IDLE and
+      self.prev_cruise_buttons != CruiseButtons.IDLE):
+      self.long_pull = False
+      self.long_count = 0
+
+    elif (CS.cruise_buttons == CruiseButtons.MAIN and
         self.prev_cruise_buttons != CruiseButtons.MAIN):
       self.prev_stalk_pull_time_ms = self.stalk_pull_time_ms
       self.stalk_pull_time_ms = curr_time_ms
       double_pull = self.stalk_pull_time_ms - self.prev_stalk_pull_time_ms < STALK_DOUBLE_PULL_MS
+
       ready = (CS.cstm_btns.get_button_status(PCCModes.BUTTON_NAME) > PCCState.OFF
                and (CruiseState.is_off(CS.pcm_acc_status)) or CS.forcePedalOverCC)
       if ready and double_pull:
@@ -261,8 +272,20 @@ class PCCController():
         # We round the target speed in the user's units of measurement to avoid jumpy speed readings
         current_speed_kph_uom_rounded = int(CS.v_ego * CV.MS_TO_KPH / speed_uom_kph + 0.5) * speed_uom_kph
         self.pedal_speed_kph = max(current_speed_kph_uom_rounded, self.speed_limit_kph)
+
+    elif (CS.cruise_buttons == CruiseButtons.MAIN and
+        self.prev_cruise_buttons == CruiseButtons.MAIN):
+#TODO: Make better with ms timers, and make a sound on IC when going into long only. Play the AP chime perhaps ?
+      if frame %  20 == 0:
+        self.long_count = self.long_count + 1
+
+      if self.long_count >= 8 and not CS.forceLongOnly:
+        CS.UE.custom_alert_message(3, "Long Only", 150, 4)
+        CS.forceLongOnly = True
+
     # Handle pressing the cancel button.
     elif CS.cruise_buttons == CruiseButtons.CANCEL:
+      CS.forceLongOnly = False
       self.enable_pedal_cruise = False
       self.pedal_speed_kph = 0. 
       self.stalk_pull_time_ms = 0
@@ -283,16 +306,17 @@ class PCCController():
         self.pedal_speed_kph = self.pedal_speed_kph - 5 * speed_uom_kph
       # Clip PCC speed between 0 and 170 KPH.
       self.pedal_speed_kph = clip(self.pedal_speed_kph, MIN_PCC_V_KPH, MAX_PCC_V_KPH)
-    # If something disabled cruise control, disable PCC too
-    elif self.enable_pedal_cruise and CS.pcm_acc_status and not CS.forcePedalOverCC:
+    # If something disabled cruise control, disable PCC too, but keep pedal is forceLongOnly is active!
+    elif self.enable_pedal_cruise and CS.pcm_acc_status and not CS.forcePedalOverCC and not CS.forceLongOnly:
       self.enable_pedal_cruise = False
     # A single pull disables PCC (falling back to just steering). Wait some time
     # in case a double pull comes along.
     elif (self.enable_pedal_cruise
           and curr_time_ms - self.stalk_pull_time_ms > STALK_DOUBLE_PULL_MS
-          and self.stalk_pull_time_ms - self.prev_stalk_pull_time_ms > STALK_DOUBLE_PULL_MS): 
+          and self.stalk_pull_time_ms - self.prev_stalk_pull_time_ms > STALK_DOUBLE_PULL_MS
+          and not CS.forceLonOnly) : 
       self.enable_pedal_cruise = False
-    
+
     # Notify if PCC was toggled
     if prev_enable_pedal_cruise and not self.enable_pedal_cruise:
       CS.UE.custom_alert_message(3, "PCC Disabled", 150, 4)

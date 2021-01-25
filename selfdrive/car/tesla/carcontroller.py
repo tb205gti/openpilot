@@ -11,7 +11,7 @@ from selfdrive.car.tesla.values import AH, CM
 from opendbc.can.packer import CANPacker
 from selfdrive.config import Conversions as CV
 from selfdrive.car.modules.ALCA_module import ALCAController
-from selfdrive.car.modules.GYRO_module import GYROController
+#from selfdrive.car.modules.GYRO_module import GYROController
 from selfdrive.car.tesla.ACC_module import ACCController
 from selfdrive.car.tesla.PCC_module import PCCController
 from selfdrive.car.tesla.HSO_module import HSOController
@@ -94,7 +94,7 @@ class CarController():
     self.ACC = ACCController(self)
     self.PCC = PCCController(self)
     self.HSO = HSOController(self)
-    self.GYRO = GYROController()
+    #self.GYRO = GYROController()
     self.AHB = AHBController(self)
     self.sent_DAS_bootID = False
     self.speedlimit = None
@@ -112,9 +112,9 @@ class CarController():
     self.magPitch = 0.
     self.magRoll = 0.
     self.magYaw = 0.
-    self.gyroPitch = 0.
-    self.gyroRoll = 0.
-    self.gyroYaw = 0.
+    #self.gyroPitch = 0.
+    #self.gyroRoll = 0.
+    #self.gyroYaw = 0.
     self.set_speed_limit_active = False
     self.speed_limit_offset = 0.
     self.speed_limit_ms = 0.
@@ -347,9 +347,9 @@ class CarController():
       self.gpsLocationExternal.send(sol.to_bytes())
 
     #get pitch/roll/yaw every 0.1 sec
-    if (frame %10 == 0):
-      (self.accPitch, self.accRoll, self.accYaw),(self.magPitch, self.magRoll, self.magYaw),(self.gyroPitch, self.gyroRoll, self.gyroYaw) = self.GYRO.update(CS.v_ego,CS.a_ego,CS.angle_steers)
-      CS.UE.uiGyroInfoEvent(self.accPitch, self.accRoll, self.accYaw,self.magPitch, self.magRoll, self.magYaw,self.gyroPitch, self.gyroRoll, self.gyroYaw)
+#    if (frame %10 == 0):
+#      (self.accPitch, self.accRoll, self.accYaw),(self.magPitch, self.magRoll, self.magYaw),(self.gyroPitch, self.gyroRoll, self.gyroYaw) = self.GYRO.update(CS.v_ego,CS.a_ego,CS.angle_steers)
+#      CS.UE.uiGyroInfoEvent(self.accPitch, self.accRoll, self.accYaw,self.magPitch, self.magRoll, self.magYaw,self.gyroPitch, self.gyroRoll, self.gyroYaw)
 
     # Update statuses for custom buttons every 0.1 sec.
     if (frame % 10 == 0):
@@ -381,14 +381,17 @@ class CarController():
     apply_angle = -actuators.steerAngle  # Tesla is reversed vs OP.
     # Update HSO module info.
     human_control = self.HSO.update_stat(self,CS, enabled, actuators, frame)
-    human_lane_changing = CS.turn_signal_stalk_state > 0 and not self.alca_enabled
-    enable_steer_control = (enabled
-                            and not human_lane_changing
-                            and not human_control 
-                            and  vehicle_moving)
-    
+
     angle_lim = interp(CS.v_ego, ANGLE_MAX_BP, ANGLE_MAX_V)
     apply_angle = clip(apply_angle, -angle_lim, angle_lim)
+
+    human_lane_changing = CS.turn_signal_stalk_state > 0 and not self.alca_enabled
+
+    enable_steer_control = (enabled
+                          #  and not human_lane_changing
+                            and not human_control
+                            and  vehicle_moving)
+
     # Windup slower.
     if self.last_angle * apply_angle > 0. and abs(apply_angle) > abs(self.last_angle):
       angle_rate_lim = interp(CS.v_ego, ANGLE_DELTA_BP, ANGLE_DELTA_V)

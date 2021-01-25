@@ -229,8 +229,8 @@ int main(int argc, char **argv) {
         model_publish(model_sock, extra.frame_id, model_buf, extra.timestamp_eof);
         posenet_publish(posenet_sock, extra.frame_id, model_buf, extra.timestamp_eof);
 
-        LOGD("model process: %.2fms, from last %.2fms", mt2-mt1, mt1-last);
-	printf("model process: %.2fms, from last %.2fms\n", mt2-mt1, mt1-last);
+//        LOGD("model process: %.2fms, from last %.2fms", mt2-mt1, mt1-last);
+//	printf("model process: %.2fms, from last %.2fms\n", mt2-mt1, mt1-last);
         last = mt1;
       }
     }

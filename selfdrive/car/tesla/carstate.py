@@ -201,6 +201,7 @@ class CarState(CarStateBase):
 
     ### START OF MAIN CONFIG OPTIONS ###
     ### Do NOT modify here, modify in /data/bb_openpilot.cfg and reboot
+    self.forceLongOnly = False
     self.forcePedalOverCC = True
     self.usesApillarHarness = False
     self.enableHSO = True

@@ -233,14 +233,7 @@ void draw_lock_button(UIState *s) {
 
 static void screen_draw_button(UIState *s, int touch_x, int touch_y) {
   // Set button to bottom left of screen
-  if (s->vision_connected ){// && s->active_app == cereal_UiLayoutState_App_home) {
-
-
-//  LOGW("==================== DASHCAM STARTED =============");
-
-    if (captureState == CAPTURE_STATE_CAPTURING) {
-      draw_lock_button(s);
-    }
+  if (s->vision_connected ){
 
     int btn_w = 150;
     int btn_h = 150;
@@ -255,20 +248,18 @@ static void screen_draw_button(UIState *s, int touch_x, int touch_y) {
       nvgFontSize(s->vg, 70);
 
       if (captureState == CAPTURE_STATE_CAPTURING) {
-        NVGcolor fillColor = nvgRGBA(255,0,0,150);
+        NVGcolor fillColor = nvgRGBA(255,0,0,80);
         nvgFillColor(s->vg, fillColor);
         nvgFill(s->vg);
-        nvgFillColor(s->vg, nvgRGBA(255,255,255,200));
+        nvgFillColor(s->vg, nvgRGBA(255,255,255,80));
       }
       else {
-        nvgFillColor(s->vg, nvgRGBA(255, 255, 255, 200));
+        nvgFillColor(s->vg, nvgRGBA(255, 255, 255, 80));
       }
       nvgText(s->vg,btn_x-88,btn_y+50,"REC",NULL);
   }
 
   if (captureState == CAPTURE_STATE_CAPTURING) {
-    //draw_date_time(s);
-
     elapsed_time = get_time() - start_time;
 
     if (elapsed_time >= RECORD_INTERVAL) {
