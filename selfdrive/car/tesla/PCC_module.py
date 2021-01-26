@@ -314,7 +314,7 @@ class PCCController():
     elif (self.enable_pedal_cruise
           and curr_time_ms - self.stalk_pull_time_ms > STALK_DOUBLE_PULL_MS
           and self.stalk_pull_time_ms - self.prev_stalk_pull_time_ms > STALK_DOUBLE_PULL_MS
-          and not CS.forceLonOnly) : 
+          and not CS.forceLongOnly) :
       self.enable_pedal_cruise = False
 
     # Notify if PCC was toggled
