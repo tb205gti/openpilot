@@ -562,7 +562,7 @@ class CarController():
     speed_override = 0
     if (CS.pedal_interceptor_value > 10) and (cc_state > 1):
       speed_override = 0 #force zero for now
-    if (not enable_steer_control) and op_status == 3:
+    if (not enable_steer_control) and op_status == 3 and not CS.forceLongOnly:
       #hands_on_state = 0x03
       self.DAS_219_lcTempUnavailableSpeed = 1
       self.warningCounter = 100
@@ -590,6 +590,8 @@ class CarController():
     if send_fake_msg:
       if enable_steer_control and op_status == 3:
         op_status = 0x5
+      elif CS.forceLongOnly:
+        op_status = 0x2
       park_brake_request = 0 #experimental; disabled for now
       if park_brake_request == 1:
         print("Park Brake Request received")

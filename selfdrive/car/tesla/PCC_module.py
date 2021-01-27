@@ -275,11 +275,10 @@ class PCCController():
 
     elif (CS.cruise_buttons == CruiseButtons.MAIN and
         self.prev_cruise_buttons == CruiseButtons.MAIN):
-#TODO: Make better with ms timers, and make a sound on IC when going into long only. Play the AP chime perhaps ?
+      #TODO: Make better with ms timers, and make a sound on IC when going into long only. Play the AP chime perhaps ?
       if frame %  20 == 0:
         self.long_count = self.long_count + 1
-
-      if self.long_count >= 8 and not CS.forceLongOnly:
+      if self.long_count >= 6 and not CS.forceLongOnly and self.enable_pedal_cruise:
         CS.UE.custom_alert_message(3, "Long Only", 150, 4)
         CS.forceLongOnly = True
 

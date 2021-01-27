@@ -26,7 +26,7 @@ class HSOController():
           if angle_diff > 15.:
             self.frame_humanSteered = frame
 
-      if frame - self.frame_humanSteered < 50:
+      if frame - self.frame_humanSteered < 50 and not CS.forceLongOnly:
         human_control = True
         CS.UE.custom_alert_message(3, "Manual Steering Enabled", 51, 4)
 
