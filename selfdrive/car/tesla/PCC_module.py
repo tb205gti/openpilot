@@ -243,6 +243,7 @@ class PCCController():
     # disable on brake
     if CS.brake_pressed and self.enable_pedal_cruise:
       self.enable_pedal_cruise = False
+      CS.forceLongOnly = False
       self.reset(0.)
 
     # process any stalk movement
@@ -278,7 +279,7 @@ class PCCController():
       #TODO: Make better with ms timers, and make a sound on IC when going into long only. Play the AP chime perhaps ?
       if frame %  20 == 0:
         self.long_count = self.long_count + 1
-      if self.long_count >= 6 and not CS.forceLongOnly and self.enable_pedal_cruise:
+      if self.long_count >= 5 and not CS.forceLongOnly and self.enable_pedal_cruise:
         CS.UE.custom_alert_message(3, "Long Only", 150, 4)
         CS.forceLongOnly = True
 

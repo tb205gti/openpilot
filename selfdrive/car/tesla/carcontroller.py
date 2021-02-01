@@ -385,12 +385,13 @@ class CarController():
     angle_lim = interp(CS.v_ego, ANGLE_MAX_BP, ANGLE_MAX_V)
     apply_angle = clip(apply_angle, -angle_lim, angle_lim)
 
-    human_lane_changing = CS.turn_signal_stalk_state > 0 and not self.alca_enabled
 
     enable_steer_control = (enabled
                           #  and not human_lane_changing
                             and not human_control
                             and  vehicle_moving)
+
+    human_lane_changing = CS.turn_signal_stalk_state > 0 and not self.alca_enabled and not enable_steer_control and vehicle_moving
 
     # Windup slower.
     if self.last_angle * apply_angle > 0. and abs(apply_angle) > abs(self.last_angle):
@@ -557,11 +558,16 @@ class CarController():
         send_fake_msg = True
       if frame % 60 == 0:
         send_fake_warning = True
+
     if frame % 10 == 0:
       can_sends.append(teslacan.create_fake_DAS_obj_lane_msg(self.leadDx,self.leadDy,self.leadClass,self.rLine,self.lLine,self.curv0,self.curv1,self.curv2,self.curv3,self.laneRange,self.laneWidth))
     speed_override = 0
     if (CS.pedal_interceptor_value > 10) and (cc_state > 1):
       speed_override = 0 #force zero for now
+
+#    if (not enable_steer_control) and op_status == 3 and human_lane_changing:
+#        hands_on_state = 0x02
+
     if (not enable_steer_control) and op_status == 3 and not CS.forceLongOnly:
       #hands_on_state = 0x03
       self.DAS_219_lcTempUnavailableSpeed = 1
@@ -583,12 +589,12 @@ class CarController():
             self.fleet_speed_state = 0x01 #fleet speed available
         can_sends.append(teslacan.create_fake_DAS_msg2(highLowBeamStatus,highLowBeamReason,ahbIsEnabled,self.fleet_speed_state))
     if (self.cc_counter < 3) and (self.fleet_speed_state == 0x02):
-      CS.v_cruise_pcm = CS.v_cruise_pcm + 1 
+      CS.v_cruise_pcm = CS.v_cruise_pcm + 1
       send_fake_msg = True
     if (self.cc_counter == 3):
       send_fake_msg = True
     if send_fake_msg:
-      if CS.forceLongOnly:
+      if CS.forceLongOnly or human_lane_changing: #hop ud af det blå rat når vi skifter bane manuelt
         enable_steer_control = False
         op_status = 0x2
       elif enable_steer_control and op_status == 3:
