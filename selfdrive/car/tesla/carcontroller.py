@@ -391,7 +391,7 @@ class CarController():
                             and not human_control
                             and  vehicle_moving)
 
-    human_lane_changing = CS.turn_signal_stalk_state > 0 and not self.alca_enabled and not enable_steer_control and vehicle_moving
+    human_lane_changing = CS.turn_signal_stalk_state > 0 and not self.alca_enabled and not enable_steer_control #and vehicle_moving
 
     # Windup slower.
     if self.last_angle * apply_angle > 0. and abs(apply_angle) > abs(self.last_angle):
@@ -565,8 +565,8 @@ class CarController():
     if (CS.pedal_interceptor_value > 10) and (cc_state > 1):
       speed_override = 0 #force zero for now
 
-#    if (not enable_steer_control) and op_status == 3 and human_lane_changing:
-#        hands_on_state = 0x02
+    if (not enable_steer_control) and op_status == 3 and human_lane_changing:
+        hands_on_state = 0x02
 
     if (not enable_steer_control) and op_status == 3 and not CS.forceLongOnly:
       #hands_on_state = 0x03

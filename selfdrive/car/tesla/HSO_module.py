@@ -28,6 +28,7 @@ class HSOController():
 
       if frame - self.frame_humanSteered < 50 and not CS.forceLongOnly:
         human_control = True
+       # msg when normal steering override without blinker
         CS.UE.custom_alert_message(3, "Manual Steering Enabled", 51, 4)
 
     if (not human_control) and (CC.DAS_219_lcTempUnavailableSpeed == 1):
@@ -35,7 +36,8 @@ class HSOController():
       CC.warningNeeded = 1
 
     if self.human_control and CS.turn_signal_stalk_state > 0:
-      CS.UE.custom_alert_message(3, "Manual Steering Enabled", 51, 4)
+      #Msg @ override with blinker on
+#      CS.UE.custom_alert_message(3, "Manual Steering Enabled 2", 51, 4)
       return enabled
 
     self.human_control = human_control
